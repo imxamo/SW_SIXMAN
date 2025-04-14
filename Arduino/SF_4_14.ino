@@ -1,8 +1,9 @@
+#include <Arduino.h>
 #include "DHT.h"
 
 #define DIRT_PIN A0
 #define WATER_PIN 34
-#define WATER_LED_PIN = 2; //(수위센서) LED 핀 (예: GPIO2)
+#define WATER_LED_PIN 2 //(수위센서) LED 핀 (예: GPIO2)
 #define TEMP_PIN 2        // DHT11 DATA 핀 연결 위치
 #define DHTTYPE DHT11   // 센서 종류
 #define PUMP_IN1 16              // 펌프 회전 방향 제어용 GPIO (IN1)
@@ -25,7 +26,7 @@ void setup() {
   //WATER_PIN은 아날로그 신호라서 필요하지 않음
  	pinMode(WATER_LED_PIN, OUTPUT);
   dht.begin(); //온습도 센서 클래스
-
+/*
   //펌프
   pinMode(PUMP_IN1, OUTPUT);
   pinMode(PUMP_IN2, OUTPUT);
@@ -47,6 +48,7 @@ void setup() {
   digitalWrite(PUMP_IN1, LOW);
   digitalWrite(PUMP_IN2, LOW);
   ledcWrite(PUMP_PWM_CHANNEL, 0);
+  */
 }
 
 void loop() {
@@ -71,7 +73,7 @@ void loop() {
 	Serial.print("수위 값: ");
 	Serial.println(water_value);
 
-	if (waterLevel < 1000) {
+	if (water_value < 1000) {
 		digitalWrite(WATER_LED_PIN, HIGH); // LED 켜기
   }
 	else {
@@ -90,7 +92,7 @@ void loop() {
   Serial.print(temp_hum);
   Serial.println(" %");
 
-  delay(1000);  // 1초마다 측정
+  delay(5000);  // 1초마다 측정
 }
 
 /*
