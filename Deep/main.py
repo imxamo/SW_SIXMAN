@@ -4,42 +4,43 @@ import json
 import cv2
 import numpy as np
 import tensorflow as tf
-from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-# --- STEP 1: Google Drive 인증 ---
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+# --- Google Drive 인증 ---
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 
 def authenticate_drive():
     scopes = ['https://www.googleapis.com/auth/drive.readonly']
-    flow = InstalledAppFlow.from_client_secrets_file("credentials.json", scopes, redirect_uri="urn:ietf:wg:oauth:2.0:oob")
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', scopes)
 
-    # 인증 URL 생성
-    auth_url, _ = flow.authorization_url(prompt='consent')
-    print("🔗 다음 주소를 브라우저에 복사해서 여세요:")
-    print(auth_url)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", scopes, redirect_uri="urn:ietf:wg:oauth:2.0:oob")
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            print("🔗 브라우저에서 다음 주소를 열고 인증 후 코드를 붙여넣으세요:")
+            print(auth_url)
+            code = input("📥 인증 코드: ")
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
 
-    # 인증 코드 입력
-    code = input("📥 복사한 인증 코드를 입력하세요: ")
-    flow.fetch_token(code=code)
+    return build('drive', 'v3', credentials=creds)
 
-    # 서비스 생성
-    return build('drive', 'v3', credentials=flow.credentials)
+# --- Google Drive 폴더 내 파일 목록 가져오기 ---
+def list_files_in_folder(service, folder_id):
+    query = f"'{folder_id}' in parents and trashed=false"
+    results = service.files().list(q=query, pageSize=1000, fields="files(id, name)").execute()
+    return results.get('files', [])
 
-
-# --- STEP 2: 파일 ID 찾기 ---
-def get_file_id_by_name(service, filename):
-    query = f"name='{filename}'"
-    results = service.files().list(q=query, fields="files(id, name)").execute()
-    items = results.get('files', [])
-    if items:
-        return items[0]['id']
-    return None
-
-# --- STEP 3: 파일 다운로드 (streaming) ---
+# --- 파일 다운로드 ---
 def download_file(service, file_id):
     request = service.files().get_media(fileId=file_id)
     file_stream = io.BytesIO()
@@ -50,17 +51,49 @@ def download_file(service, file_id):
     file_stream.seek(0)
     return file_stream
 
-# --- STEP 4: JSON에서 라벨 추출 ---
-def get_label_from_json(json_stream):
+# --- JSON에서 라벨 추출 ---
+def parse_json_label(json_stream):
     data = json.load(json_stream)
-    plant = data['plant']
-    disease = data['disease']
-    return f"{plant}_{disease}"
+    return data["annotations"]["disease"]
 
-# --- STEP 5: 간단한 CNN 모델 정의 ---
+# --- 데이터셋 로드 ---
+def load_dataset_from_drive(service, image_folder_id, label_folder_id):
+    image_files = list_files_in_folder(service, image_folder_id)
+    label_files = list_files_in_folder(service, label_folder_id)
+    label_dict = {f["name"]: f["id"] for f in label_files}
+
+    images, labels = [], []
+
+    for image_file in image_files:
+        name = image_file["name"]
+        if not name.lower().endswith((".jpg", ".jpeg")):
+            continue
+
+        json_name = name + ".json"  # ex: a.jpg.json
+        if json_name not in label_dict:
+            continue
+
+        # 이미지 로딩
+        img_stream = download_file(service, image_file["id"])
+        img_array = np.asarray(bytearray(img_stream.read()), dtype=np.uint8)
+        image = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            continue
+        image = cv2.resize(image, (64, 64))
+        images.append(image)
+
+        # 라벨 로딩
+        json_stream = download_file(service, label_dict[json_name])
+        label = parse_json_label(json_stream)
+        labels.append(label)
+
+    return images, labels
+
+# --- 모델 정의 ---
 def build_model(input_shape, num_classes):
     model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=input_shape),
+        tf.keras.layers.Input(shape=input_shape),
+        tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2,2)),
         tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2,2)),
@@ -73,49 +106,39 @@ def build_model(input_shape, num_classes):
                   metrics=['accuracy'])
     return model
 
-# --- STEP 6: 메인 실행 ---
+# --- 메인 실행 ---
 def main():
     service = authenticate_drive()
 
-    # 사용할 파일 이름 목록 (예시)
-    image_filenames = ['image_001.jpg', 'image_002.jpg']
-    json_filenames = ['image_001.json', 'image_002.json']
+    # TODO: 여기에 실제 폴더 ID 넣기
+    train_image_folder_id = "YOUR_TRAIN_IMAGE_FOLDER_ID"
+    train_label_folder_id = "YOUR_TRAIN_LABEL_FOLDER_ID"
+    test_image_folder_id = "YOUR_TEST_IMAGE_FOLDER_ID"
+    test_label_folder_id = "YOUR_TEST_LABEL_FOLDER_ID"
+    val_image_folder_id = "YOUR_VAL_IMAGE_FOLDER_ID"
+    val_label_folder_id = "YOUR_VAL_LABEL_FOLDER_ID"
 
-    images = []
-    labels = []
-    label_dict = {}
-    label_index = 0
+    train_images, train_labels = load_dataset_from_drive(service, train_image_folder_id, train_label_folder_id)
+    test_images, test_labels = load_dataset_from_drive(service, test_image_folder_id, test_label_folder_id)
+    val_images, val_labels = load_dataset_from_drive(service, val_image_folder_id, val_label_folder_id)
 
-    for img_name, json_name in zip(image_filenames, json_filenames):
-        # 이미지 다운로드
-        img_id = get_file_id_by_name(service, img_name)
-        if img_id is None: continue
-        img_stream = download_file(service, img_id)
-        img_array = np.asarray(bytearray(img_stream.read()), dtype=np.uint8)
-        image = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)  # 흑백 처리
-        image = cv2.resize(image, (64, 64))  # 크기 통일
-        images.append(image)
+    if not train_images:
+        print("❌ 학습용 이미지가 없습니다.")
+        return
 
-        # 라벨 추출
-        json_id = get_file_id_by_name(service, json_name)
-        if json_id is None: continue
-        json_stream = download_file(service, json_id)
-        label_str = get_label_from_json(json_stream)
+    X_train = np.array(train_images).reshape(-1, 64, 64, 1) / 255.0
+    y_train = np.array(train_labels)
+    X_test = np.array(test_images).reshape(-1, 64, 64, 1) / 255.0
+    y_test = np.array(test_labels)
+    X_val = np.array(val_images).reshape(-1, 64, 64, 1) / 255.0
+    y_val = np.array(val_labels)
 
-        if label_str not in label_dict:
-            label_dict[label_str] = label_index
-            label_index += 1
-        labels.append(label_dict[label_str])
+    print(f"✅ Train: {len(X_train)}, Test: {len(X_test)}, Val: {len(X_val)}")
 
-    # 넘파이 배열로 변환
-    images = np.array(images).reshape(-1, 64, 64, 1) / 255.0
-    labels = np.array(labels)
-
-    print(f"총 클래스: {label_dict}")
-    print(f"총 이미지 수: {len(images)}")
-
-    model = build_model((64, 64, 1), len(label_dict))
-    model.fit(images, labels, epochs=5)
+    model = build_model((64, 64, 1), num_classes=len(set(y_train)))
+    model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=5)
+    test_loss, test_acc = model.evaluate(X_test, y_test)
+    print(f"📊 테스트 정확도: {test_acc:.4f}")
 
 if __name__ == "__main__":
     main()
