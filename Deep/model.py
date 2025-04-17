@@ -1,65 +1,99 @@
+import os
+import json
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, TensorDataset
-# tensorflow로 하면 gpu 못써서 pytorch
+import torch.optim as optim
+import numpy as np
 
-class DiseaseClassifier(nn.Module):
-    def __init__(self, input_shape=(3, 224, 224), num_classes=3): # num_classes : 분류 클래스 3가지지
-        super(DiseaseClassifier, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=input_shape[0], out_channels=32, kernel_size=3)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(32, 64, 3)
-        self.conv3 = nn.Conv2d(64, 128, 3)
+from PIL import Image
+from sklearn.metrics import classification_report, confusion_matrix
+from torch.utils.data import Dataset, DataLoader
+from torchvision import models, transforms
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+import matplotlib.pyplot as plt
 
-        # 계산해서 나온 Flatten 크기를 설정해야 함 (임시로 128 * 26 * 26 넣음 → 실제는 input_shape에 따라 달라짐)
-        self.flatten_dim = 128 * 26 * 26
-        self.fc1 = nn.Linear(self.flatten_dim, 128)
-        self.fc2 = nn.Linear(128, num_classes)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))   # -> [B, 32, H/2, W/2]
-        x = self.pool(F.relu(self.conv2(x)))   # -> [B, 64, H/4, W/4]
-        x = self.pool(F.relu(self.conv3(x)))   # -> [B, 128, H/8, W/8]
-        
-        x = x.view(-1, self.flatten_dim)       # Flatten
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+# 상추 관련 클래스만 사용
+TARGET_DISEASES = ['0', '9', '10']
+disease_to_idx = {d: i for i, d in enumerate(TARGET_DISEASES)}
+idx_to_disease = {i: d for d, i in disease_to_idx.items()}
 
-def train_model(images, labels, input_shape=(3, 224, 224), num_classes=3, epochs=5, batch_size=32):
-    print(f"학습 데이터 수: {len(images)}")
+train_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(20),
+    transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"디바이스: {device}")
+test_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
-    # Numpy → Tensor 변환 및 정규화
-    X = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2) / 255.0  # (B, H, W, C) → (B, C, H, W)
-    y = torch.tensor(labels, dtype=torch.long)
-    
-    # 학습 데이터를 묶어서 mini_batch 단위로 묶어줌줌
-    dataset = TensorDataset(X, y)
+class LettuceDataset(Dataset):
+    def __init__(self, image_list, label_list, transform):
+        self.image_list = image_list
+        self.label_list = [disease_to_idx[str(label)] for label in label_list]
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_list)
+
+    def __getitem__(self, idx):
+        image = self.image_list[idx]
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(image).convert("RGB")
+        label = self.label_list[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+def build_model(num_classes):
+    model = models.efficientnet_b0(weights='IMAGENET1K_V1')
+    num_ftrs = model.classifier[1].in_features
+    model.classifier = nn.Sequential(
+        nn.Dropout(0.3),
+        nn.Linear(num_ftrs, num_classes)
+    )
+    return model
+
+def train_model(images, labels, epochs=10, batch_size=32):
+    dataset = LettuceDataset(images, labels, transform=train_transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    model = DiseaseClassifier(input_shape=input_shape, num_classes=num_classes).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    loss_fn = nn.CrossEntropyLoss()
+    model = build_model(num_classes=len(TARGET_DISEASES)).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=3, verbose=True)
 
-    model.train()
+    print(f"총 학습 데이터: {len(dataset)}")
+
     for epoch in range(epochs):
-        total_loss = 0
-        for xb, yb in dataloader:
-            xb, yb = xb.to(device), yb.to(device)
-            pred = model(xb)
-            loss = loss_fn(pred, yb)
+        model.train()
+        running_loss = 0.0
+        corrects = 0
+
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
-            total_loss += loss.item()
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.4f}")
+            running_loss += loss.item() * inputs.size(0)
+            corrects += torch.sum(torch.argmax(outputs, 1) == labels)
 
-    # 학습된 모델 저장
+        epoch_loss = running_loss / len(dataset)
+        epoch_acc = corrects.double() / len(dataset)
+        scheduler.step(epoch_loss)
+
+        print(f"Epoch {epoch+1}: Loss {epoch_loss:.4f}, Acc {epoch_acc:.4f}")
+
     torch.save(model.state_dict(), "plant_disease_model.pth")
     print("✅ 모델 저장 완료: plant_disease_model.pth")
