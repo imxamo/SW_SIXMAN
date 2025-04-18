@@ -61,16 +61,12 @@ def build_model(num_classes):
     )
     return model
 
-def train_model(images, labels, epochs=10, batch_size=32):
+def train_model(model, optimizer, scheduler, images, labels, epochs=1, batch_size=32):
     dataset = LettuceDataset(images, labels, transform=train_transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    model = build_model(num_classes=len(TARGET_DISEASES)).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=3, verbose=True)
-
-    print(f"총 학습 데이터: {len(dataset)}")
+    print(f"🔄 이번 배치 학습 데이터 수: {len(dataset)}")
 
     for epoch in range(epochs):
         model.train()
@@ -93,7 +89,7 @@ def train_model(images, labels, epochs=10, batch_size=32):
         epoch_acc = corrects.double() / len(dataset)
         scheduler.step(epoch_loss)
 
-        print(f"Epoch {epoch+1}: Loss {epoch_loss:.4f}, Acc {epoch_acc:.4f}")
+        print(f"🧪 Epoch {epoch+1}: Loss {epoch_loss:.4f}, Acc {epoch_acc:.4f}")
 
     torch.save(model.state_dict(), "plant_disease_model.pth")
     print("✅ 모델 저장 완료: plant_disease_model.pth")
