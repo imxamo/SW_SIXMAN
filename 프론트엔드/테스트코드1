@@ -1,0 +1,263 @@
+import { useState } from "react";
+
+function App() {
+  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedPlant, setSelectedPlant] = useState("");
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handlePlantChange = (e) => {
+    setSelectedPlant(e.target.value);
+  };
+
+  const handleSendToServer = () => {
+    if (!selectedPlant) {
+      alert("식물이 선택되지 않았습니다.");
+      return;
+    }
+    alert("서버로 전송하는 기능은 아직 준비 중입니다.");
+  };
+
+  return (
+    <div style={styles.page}>
+      {/* 상단 로고 영역 */}
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <div style={styles.headerLeft}>SIXMAN</div>
+          <div style={styles.headerCenter}>Open Development Platform 기반의 스마트팜 구축</div>
+        </div>
+      </header>
+
+      {/* 메인 콘텐츠 */}
+      <div style={styles.main}>
+        {/* 좌측 사이드바 */}
+        <aside style={styles.sidebar}>
+          <a href="next.html" style={styles.link}>
+            추가 기능 보기
+          </a>
+        </aside>
+
+        {/* 중앙 본문 */}
+        <section style={styles.content}>
+          <h1 style={styles.title}>
+            <b style={{ color: "#60a5fa" }}>AI</b> 식물 병 분석
+          </h1>
+
+          <div style={styles.uploadArea}>
+            <label style={styles.uploadButton}>
+              파일 선택
+              <input
+                type="file"
+                onChange={handleFileChange}
+                style={styles.hiddenInput}
+              />
+            </label>
+
+            <select
+              value={selectedPlant}
+              onChange={handlePlantChange}
+              style={styles.selectBox}
+            >
+              <option value="" disabled>
+                식물을 선택해주세요
+              </option>
+              <option value="lettuce">상추</option>
+              <option value="spinach">시금치</option>
+              <option value="cabbage">양배추</option>
+            </select>
+
+            {imagePreview && (
+              <div style={styles.previewBox}>
+                <img
+                  src={imagePreview}
+                  alt="미리보기"
+                  style={styles.previewImage}
+                />
+              </div>
+            )}
+
+            {imagePreview && (
+              <button style={styles.sendButton} onClick={handleSendToServer}>
+                서버로 전송
+              </button>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* 하단 정보 */}
+      <footer style={styles.footer}>
+        <div style={styles.footerContent}>
+          <div style={styles.footerLogo}>
+            <strong>식스맨</strong><br />
+            <span style={{ fontSize: "0.8rem", color: "#ccc" }}>SIXMAN</span>
+          </div>
+          <div style={styles.footerText}>
+            <p><strong>팀장 (프론트 엔드, 하드웨어 담당)</strong> 이춘혁 </p> <p><strong>팀원 (하드웨어 담당, 딥러닝 담당)</strong> 조준영 </p>
+            <p><strong>팀원 (하드웨어 담당, 딥러닝 담당)</strong> 박지용 </p>
+            </div>
+          <div style={styles.footerText}>
+            <p><strong>팀원 (딥러닝 담당)</strong> 이수아  </p>
+            <p><strong>팀원 (프론트 엔드 담당)</strong> 손지훈 </p> <p><strong>팀원 (백엔드 담당)</strong> 이민혁</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100vh",
+    fontFamily: "'Segoe UI', sans-serif",
+    backgroundColor: "#f0f4f8",
+    color: "#333",
+  },
+  header: {
+    padding: "20px",
+    backgroundColor: "#60a5fa",
+    color: "#fff",
+  },
+
+  headerInner: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    maxWidth: "1200px",
+    margin: "0 auto",
+    flexWrap: "wrap",
+  },
+
+  headerLeft: {
+    fontSize: "1.6rem",
+    fontWeight: "bold",
+    textAlign: "left",
+  },
+
+  headerCenter: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: "1.1rem",
+    fontWeight: "500",
+  },
+
+  logo: {
+    fontSize: "1.6rem",
+    fontWeight: "bold",
+  },
+  main: {
+    flex: 1,
+    display: "flex",
+    flexWrap: "wrap",
+    padding: "20px",
+    gap: "20px",
+  },
+  sidebar: {
+    width: "200px",
+    backgroundColor: "#fff",
+    borderRadius: "12px",
+    padding: "20px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+    height: "fit-content",
+  },
+  link: {
+    color: "#3b82f6", // 하늘색 링크
+    textDecoration: "none",
+    fontWeight: "500",
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    padding: "30px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+  },
+  title: {
+    fontSize: "1.8rem",
+    marginBottom: "25px",
+  },
+  uploadArea: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+  },
+  uploadButton: {
+    display: "inline-block",
+    padding: "12px 30px",
+    backgroundColor: "#60a5fa", // 하늘색
+    color: "#fff",
+    fontSize: "1rem",
+    fontWeight: "bold",
+    borderRadius: "8px",
+    cursor: "pointer",
+    textAlign: "center",
+  },
+  hiddenInput: {
+    display: "none",
+  },
+  selectBox: {
+    width: "100%",
+    padding: "12px",
+    fontSize: "1rem",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    backgroundColor: "#f9fafb",
+  },
+  previewBox: {
+    marginTop: "10px",
+    padding: "15px",
+    backgroundColor: "#f9fafb",
+    borderRadius: "10px",
+    border: "1px dashed #ccc",
+    display: "flex",
+    justifyContent: "center",
+  },
+  previewImage: {
+    maxWidth: "100%",
+    maxHeight: "300px",
+    borderRadius: "10px",
+  },
+  sendButton: {
+    padding: "12px 30px",
+    backgroundColor: "#60a5fa", // 하늘색
+    color: "#fff",
+    fontSize: "1rem",
+    fontWeight: "bold",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  footer: {
+    backgroundColor: "#666666", // 연한 회색
+    color: "#eee",
+    fontSize: "0.9rem",
+    padding: "20px 30px",
+    borderTop: "1px solid #666",
+  },
+  footerContent: {
+    display: "flex",
+    flexDirection: "row",
+    gap: "30px",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
+  footerLogo: {
+    minWidth: "150px",
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  footerText: {
+    flex: 1,
+    color: "#ddd",
+    lineHeight: "1.6",
+  },
+};
+
+export default App;
