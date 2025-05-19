@@ -7,13 +7,9 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 한글 폰트 설정 - matplotlib에서 한글 표시
+
 import matplotlib.font_manager as fm
-# 맑은 고딕 폰트 사용, 시스템에 따라 다른 한글 폰트로 대체 가능
-# Windows의 경우
 font_path = 'C:/Windows/Fonts/malgun.ttf'  
-# Linux/macOS의 경우 다른 경로 사용
-# font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'  
 
 # 시스템에 폰트가 있는지 확인
 if os.path.exists(font_path):
@@ -29,7 +25,6 @@ else:
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"사용 장치: {device}")
 
-# 나머지 코드는 동일...
 # 모델 구축 함수
 def build_model(num_classes):
     # EfficientNet 모델 사용
@@ -186,7 +181,6 @@ def predict_folder(folder_path, limit=5):
         count = class_counts.get(disease, 0)
         print(f"  - {disease} ({disease_names.get(disease, '알 수 없음')}): {count}개 ({count/len(results)*100 if results else 0:.2f}%)")
 
-# 사용 예시:
 # 1. 단일 이미지 예측
 # predict_disease('경로/이미지파일.jpg')
 

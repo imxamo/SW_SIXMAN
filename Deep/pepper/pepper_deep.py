@@ -14,29 +14,22 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import models, transforms
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-# 한글 폰트 설정 - matplotlib에서 한글 표시
 import matplotlib.font_manager as fm
-# 맑은 고딕 폰트 사용, 시스템에 따라 다른 한글 폰트로 대체 가능
-# Windows의 경우
-font_path = 'C:/Windows/Fonts/malgun.ttf'  
-# Linux/macOS의 경우 다른 경로 사용
-# font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'  
+font_path = 'C:/Windows/Fonts/malgun.ttf'    
 
 # 시스템에 폰트가 있는지 확인
 if os.path.exists(font_path):
     font_prop = fm.FontProperties(fname=font_path)
     plt.rcParams['font.family'] = font_prop.get_name()
-    plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
+    plt.rcParams['axes.unicode_minus'] = False 
 else:
     print(f"경고: {font_path} 폰트를 찾을 수 없습니다. 기본 폰트를 사용합니다.")
-    # 대체 방법 - 사용 가능한 폰트 중 한글 지원 폰트 사용
-    plt.rcParams['font.family'] = 'Malgun Gothic'  # 또는 다른 한글 폰트 이름
+    plt.rcParams['font.family'] = 'Malgun Gothic'  
 
-# 경로 설정 - 직접 수정
-base_dir = 'D:\\data_folders'  # 경로를 실제 데이터 위치로 변경해주세요
+
+base_dir = 'D:\\data_folders'  
 data_folders = ['train', 'validation', 'test']
 
-# 우리가 사용할 대상 질병 클래스 명시적 지정 (고추 질병으로 변경)
 TARGET_DISEASES = ['0', '3', '4']  # 정상(0), 고추마일드모틀바이러스병(3), 고추점무늬병(4)
 
 # 한글 이름 매핑 (그래프 표시용)
@@ -46,13 +39,10 @@ DISEASE_NAMES = {
     '4': '고추점무늬병'
 }
 
-# 작물-질병 매핑 딕셔너리 (하드코딩) - 고추로 변경
 CROP_DISEASE_MAPPING = {
     '2': TARGET_DISEASES,  # 고추: 정상(0), 고추마일드모틀바이러스병(3), 고추점무늬병(4)
-    # 필요시 다른 작물 추가
 }
 
-# 유효한 작물-질병 조합인지 확인하는 함수
 def is_valid_crop_disease(crop, disease):
     """작물-질병 조합이 유효한지 확인"""
     crop = str(crop)
@@ -231,7 +221,7 @@ for folder in datasets_paths.keys():
     else:
         dataset = PepperDataset(paths, labels, disease_to_idx, transform=test_transform)
     
-    # 데이터로더 생성 (Windows에서는 num_workers=0으로 설정하여 멀티프로세싱 문제 해결)
+    # 데이터로더 생성
     data_loaders[folder] = DataLoader(dataset, batch_size=32, shuffle=(folder=='train'), num_workers=0)
     dataset_sizes[folder] = len(dataset)
     
@@ -270,17 +260,15 @@ def build_model(num_classes):
 
 # 멀티프로세싱을 위한 보호 코드 추가
 if __name__ == '__main__':
-    # Windows에서 멀티프로세싱 지원
     freeze_support()
     
-    # 이하 코드는 데이터셋이 정상적으로 로드된 후에만 실행
     if 'train' in data_loaders:
         # 모델 생성
         num_classes = len(unique_diseases)
         model = build_model(num_classes)
         model = model.to(device)
 
-    # 모델 요약 정보 출력 (PyTorch에서는 직접적인 summary 함수 없음)
+    # 모델 요약 정보 출력
     print(model)
     
     # 손실 함수, 최적화 알고리즘, 스케줄러 설정
