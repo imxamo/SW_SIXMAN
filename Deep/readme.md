@@ -12,6 +12,10 @@ https://aihub.or.kr/aihubdata/data/view.do?currMenu=&topMenu=&aihubDataSe=data&d
 
 
 
+라벨링 데이터의 crops의 클래스 값으로 식물을 구분 + disease값으로 질병을 구분하여 학습한다
+
+
+
 
 12가지의 작물중 질병이 2개가 있는 작물만 진행 예정 (가지 / 고추 / 단호박 / 딸기 / 상추 / 수박 / 참외 / 토마토)
 현재 딸기 / 상추 / 토마토 완료 (고추 좀 손봐야함)
