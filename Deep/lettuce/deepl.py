@@ -14,17 +14,17 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import models, transforms
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-# 경로 설정 - 직접 수정
-base_dir = 'D:\\data_folders'  # 경로를 실제 데이터 위치로 변경해주세요
+
+base_dir = 'D:\\data_folders'  
 data_folders = ['train', 'validation', 'test']
 
-# 우리가 사용할 대상 질병 클래스 명시적 지정
+
 TARGET_DISEASES = ['0', '9', '10']  # 정상(0), 상추균핵병(9), 상추노균병(10)
 
-# 작물-질병 매핑 딕셔너리 (하드코딩)
+
 CROP_DISEASE_MAPPING = {
     '5': TARGET_DISEASES,  # 상추: 정상(0), 상추균핵병(9), 상추노균병(10)
-    # 필요시 다른 작물 추가
+    
 }
 
 # 유효한 작물-질병 조합인지 확인하는 함수
@@ -183,8 +183,8 @@ if not datasets_paths:
     print("오류: 어떠한 데이터셋도 로드할 수 없습니다. 프로그램을 종료합니다.")
     exit(1)
 
-# 질병 클래스 정의 - 명시적으로 지정된 타겟 질병만 사용
-unique_diseases = TARGET_DISEASES  # 이미 지정한 대상 질병만 사용
+# 질병 클래스 정의
+unique_diseases = TARGET_DISEASES  
 disease_to_idx = {disease: idx for idx, disease in enumerate(unique_diseases)}
 idx_to_disease = {idx: disease for disease, idx in disease_to_idx.items()}
 
@@ -205,7 +205,7 @@ for folder in datasets_paths.keys():
     else:
         dataset = LettuceDataset(paths, labels, disease_to_idx, transform=test_transform)
     
-    # 데이터로더 생성 (Windows에서는 num_workers=0으로 설정하여 멀티프로세싱 문제 해결)
+    # 데이터로더 생성 
     data_loaders[folder] = DataLoader(dataset, batch_size=32, shuffle=(folder=='train'), num_workers=0)
     dataset_sizes[folder] = len(dataset)
     
@@ -232,7 +232,6 @@ def build_model(num_classes):
     # EfficientNet 모델 사용 (EfficientNetB0에 해당)
     model = models.efficientnet_b0(weights='IMAGENET1K_V1')
     
-    # 분류기 부분 재정의
     num_ftrs = model.classifier[1].in_features
     model.classifier = nn.Sequential(
         nn.Dropout(0.3),
@@ -241,19 +240,17 @@ def build_model(num_classes):
     
     return model
 
-# 멀티프로세싱을 위한 보호 코드 추가
+
 if __name__ == '__main__':
-    # Windows에서 멀티프로세싱 지원
     freeze_support()
     
-    # 이하 코드는 데이터셋이 정상적으로 로드된 후에만 실행
     if 'train' in data_loaders:
         # 모델 생성
         num_classes = len(unique_diseases)
         model = build_model(num_classes)
         model = model.to(device)
 
-    # 모델 요약 정보 출력 (PyTorch에서는 직접적인 summary 함수 없음)
+    # 모델 요약 정보 출력
     print(model)
     
     # 손실 함수, 최적화 알고리즘, 스케줄러 설정

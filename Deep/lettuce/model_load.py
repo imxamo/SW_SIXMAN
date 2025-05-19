@@ -11,7 +11,7 @@ import numpy as np
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"사용 장치: {device}")
 
-# 모델 구축 함수 (원본 코드와 동일하게)
+
 def build_model(num_classes):
     # EfficientNet 모델 사용
     model = models.efficientnet_b0(weights=None)  # 가중치는 로드할 것이므로 초기값 필요 없음
@@ -167,7 +167,6 @@ def predict_folder(folder_path, limit=5):
         count = class_counts.get(disease, 0)
         print(f"  - {disease} ({disease_names.get(disease, '알 수 없음')}): {count}개 ({count/len(results)*100 if results else 0:.2f}%)")
 
-# 사용 예시:
 # 1. 단일 이미지 예측
 # predict_disease('경로/이미지파일.jpg')
 
