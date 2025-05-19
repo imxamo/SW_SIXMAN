@@ -1,4 +1,6 @@
 deepl.py >> 상추 ai모델 학습에 쓰인 코드
+
+
 model_load.py >> ai모델 불러와서 사용할때 쓰는 코드
 
 
