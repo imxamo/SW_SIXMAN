@@ -33,3 +33,10 @@ data_processing >> 데이터셋 특성상 test 데이터가 포함되어있지 �
 
 각종 식물 폴더 
 해당 식물의 ai 모델 코드와 학습 결과 또는 진행중인 내역이 포함되어있음
+
+
+
+
+![image](https://github.com/user-attachments/assets/43a744cf-5e7b-4d7b-a537-ea0ba3a46cc0)
+
+모델의 정보를 담은 pth파일이 깃허브에 올라가지 않아서.. 따로 올릴방법 찾아보는중..
