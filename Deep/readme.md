@@ -3,7 +3,8 @@
 ![image](https://github.com/user-attachments/assets/ee075b31-70d1-4edb-9746-74c5677d35d1)
 ![image](https://github.com/user-attachments/assets/3c46ea06-4784-414e-91e2-f0075777e08c)
 
-12가지의 작물중 질병이 2개가 있는 작물만 진행 예정
+12가지의 작물중 질병이 2개가 있는 작물만 진행 예정 (가지 / 고추 / 단호박 / 딸기 / 상추 / 수박 / 참외 / 토마토)
+
 
 각 폴더들 설명
 data_processing >> 데이터셋 특성상 test 데이터가 포함되어있지 않음(train 데이터와 validation 데이터만 포함하고있음) 
