@@ -14,6 +14,8 @@ https://aihub.or.kr/aihubdata/data/view.do?currMenu=&topMenu=&aihubDataSe=data&d
 
 
 12가지의 작물중 질병이 2개가 있는 작물만 진행 예정 (가지 / 고추 / 단호박 / 딸기 / 상추 / 수박 / 참외 / 토마토)
+현재 딸기 / 상추 / 토마토 완료 (고추 좀 손봐야함)
+남은 목록 : 가지 / 단호박 / 수박 / 참외
 
 
 
