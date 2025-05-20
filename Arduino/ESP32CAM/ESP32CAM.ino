@@ -2,12 +2,17 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-// ===== 와이파이 정보 =====
+// ===== Wi-Fi 정보 =====
 const char* ssid = "JJY_WIFI";
 const char* password = "62935701";
 
 // ===== 서버 주소 (Flask 백엔드 주소) =====
-const char* serverUrl = "http://172.20.205.4:3000";  // /upload는 아래에서 붙음
+const char* serverUrl = "http://192.168.96.240:3000";  // /upload는 아래에서 붙음
+
+// ===== 상태 변수 =====
+bool serverReady = false;
+unsigned long lastSendTime = 0;
+const unsigned long sendInterval = 5000;  // 5초
 
 // ===== 카메라 설정 함수 =====
 void startCamera() {
@@ -48,38 +53,13 @@ void startCamera() {
     Serial.printf("Camera init failed with error 0x%x\n", err);
     return;
   }
-
-  // ✅ 센서 설정 조정 (색감 및 밝기 개선)
-  sensor_t * s = esp_camera_sensor_get();
-  s->set_brightness(s, 1);      // -2 to 2
-  s->set_contrast(s, 1);        // -2 to 2
-  s->set_saturation(s, 0);      // -2 to 2
-  s->set_sharpness(s, 1);       // -2 to 2 (지원하는 경우)
-  s->set_gainceiling(s, (gainceiling_t)2);  // GAINCEILING_2X ~ _128X
-
-  s->set_whitebal(s, 1);        // 자동 화이트 밸런스 ON
-  s->set_awb_gain(s, 1);        // 자동 WB 게인 ON
-  s->set_wb_mode(s, 0);         // 0: Auto, 1: Sunny, 2: Cloudy, etc.
-
-  s->set_exposure_ctrl(s, 1);   // 자동 노출 ON
-  s->set_aec2(s, 0);            // 자동 노출 알고리즘 모드 OFF
-  s->set_ae_level(s, 0);        // -2 ~ 2 (노출 보정)
-  s->set_gain_ctrl(s, 1);       // 자동 게인 ON
-  s->set_agc_gain(s, 8);        // 0~30 수동 게인 (auto gain off 시)
-
-  s->set_bpc(s, 1);             // black pixel correction
-  s->set_wpc(s, 1);             // white pixel correction
-
-  s->set_raw_gma(s, 1);         // gamma correction ON
-  s->set_lenc(s, 1);            // 렌즈 왜곡 보정 ON
 }
 
-// ===== Wi-Fi 연결 및 시작 =====
+// ===== Wi-Fi 및 카메라 초기화 =====
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  // Wi-Fi 연결 시도
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
 
@@ -98,35 +78,39 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  // 카메라 시작
   startCamera();
 
-  // 서버 연결 확인
-  if (checkServerConnected()) {
-    sendPhoto();  // 확인 성공 시 사진 전송
-  } else {
+  serverReady = checkServerConnected();
+  if (!serverReady) {
     Serial.println("[ERROR] Server not responding with 200 OK.");
   }
 }
 
+// ===== 주기적으로 사진 전송 =====
 void loop() {
-  delay(10000);  // 매 10초마다 대기 (필요 시 반복 구조로 확장 가능)
+  if (!serverReady) return;
+
+  unsigned long now = millis();
+  if (now - lastSendTime >= sendInterval) {
+    lastSendTime = now;
+    sendPhoto();
+  }
 }
 
-// ===== 서버 연결 확인 (User-Agent 검사 포함) =====
+// ===== 서버 연결 확인 =====
 bool checkServerConnected() {
   HTTPClient http;
-  http.begin(String(serverUrl) + "/upload");  // GET도 허용된 upload 경로 사용
-  http.setUserAgent("esp32-cam");             // 서버에서 'esp32' 시작 확인용
+  http.begin(String(serverUrl) + "/upload");
+  http.setUserAgent("esp32-cam");
   int httpCode = http.GET();
-  delay(500);  // 응답 대기
+  delay(500);
   http.end();
 
   Serial.printf("Server response code: %d\n", httpCode);
   return httpCode == 200;
 }
 
-// ===== 이미지 캡처 및 서버로 전송 =====
+// ===== 사진 촬영 및 전송 =====
 void sendPhoto() {
   camera_fb_t* fb = esp_camera_fb_get();
   if (!fb) {
@@ -140,7 +124,7 @@ void sendPhoto() {
   http.addHeader("Content-Type", "image/jpeg");
 
   int httpResponseCode = http.POST(fb->buf, fb->len);
-  delay(500);  // 전송 대기
+  delay(500);
   http.end();
   esp_camera_fb_return(fb);
 
