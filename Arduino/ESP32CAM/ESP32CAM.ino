@@ -7,7 +7,7 @@ const char* ssid = "JJY_WIFI";
 const char* password = "62935701";
 
 // ===== 서버 주소 (Flask 백엔드 주소) =====
-const char* serverUrl = "http://192.168.96.251:3000";  // /upload는 아래에서 붙음
+const char* serverUrl = "http://172.20.205.4:3000";  // /upload는 아래에서 붙음
 
 // ===== 카메라 설정 함수 =====
 void startCamera() {
