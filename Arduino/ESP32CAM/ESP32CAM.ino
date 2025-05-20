@@ -48,6 +48,30 @@ void startCamera() {
     Serial.printf("Camera init failed with error 0x%x\n", err);
     return;
   }
+
+  // ✅ 센서 설정 조정 (색감 및 밝기 개선)
+  sensor_t * s = esp_camera_sensor_get();
+  s->set_brightness(s, 1);      // -2 to 2
+  s->set_contrast(s, 1);        // -2 to 2
+  s->set_saturation(s, 0);      // -2 to 2
+  s->set_sharpness(s, 1);       // -2 to 2 (지원하는 경우)
+  s->set_gainceiling(s, (gainceiling_t)2);  // GAINCEILING_2X ~ _128X
+
+  s->set_whitebal(s, 1);        // 자동 화이트 밸런스 ON
+  s->set_awb_gain(s, 1);        // 자동 WB 게인 ON
+  s->set_wb_mode(s, 0);         // 0: Auto, 1: Sunny, 2: Cloudy, etc.
+
+  s->set_exposure_ctrl(s, 1);   // 자동 노출 ON
+  s->set_aec2(s, 0);            // 자동 노출 알고리즘 모드 OFF
+  s->set_ae_level(s, 0);        // -2 ~ 2 (노출 보정)
+  s->set_gain_ctrl(s, 1);       // 자동 게인 ON
+  s->set_agc_gain(s, 8);        // 0~30 수동 게인 (auto gain off 시)
+
+  s->set_bpc(s, 1);             // black pixel correction
+  s->set_wpc(s, 1);             // white pixel correction
+
+  s->set_raw_gma(s, 1);         // gamma correction ON
+  s->set_lenc(s, 1);            // 렌즈 왜곡 보정 ON
 }
 
 // ===== Wi-Fi 연결 및 시작 =====
