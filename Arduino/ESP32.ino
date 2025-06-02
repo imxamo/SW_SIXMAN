@@ -3,29 +3,38 @@
 
 #define DIRT_PIN A0
 #define WATER_PIN 34
-#define WATER_LED_PIN 2
-#define TEMP_PIN 2
-#define DHTTYPE DHT11
-#define PUMP_IN1 16
-#define PUMP_IN2 17
-#define PUMP_ENA 18
-#define PUMP_PWM_CHANNEL 0
-#define PUMP_PWM_FREQ 5000
-#define PUMP_PWM_RESOLUTION 8
+#define WATER_LED_PIN 2 //(수위센서) LED 핀 (예: GPIO2)
+#define TEMP_PIN 2        // DHT11 DATA 핀 연결 위치
+#define DHTTYPE DHT11   // 센서 종류
+#define PUMP_IN1 16              // 펌프 회전 방향 제어용 GPIO (IN1)
+#define PUMP_IN2 17              // 펌프 회전 방향 제어용 GPIO (IN2)
+#define PUMP_ENA 18              // 펌프 속도(PWM) 제어용 GPIO (ENA)
+#define PUMP_PWM_CHANNEL 0       // PWM 신호에 사용할 채널 번호
+#define PUMP_PWM_FREQ 5000       // PWM 신호의 주파수 (Hz)
+#define PUMP_PWM_RESOLUTION 8    // PWM 해상도 (비트 수: 0~255 제어 가능)
+
+// === 상추 생장 조건에 따른 제어 기준 ===
+#define LETTUCE_SOIL_DRY_THRESHOLD 500     // 토양 수분 기준 (500 이상이면 건조)
+#define LETTUCE_TEMP_MIN 18                // 최소 적정 온도
+#define LETTUCE_TEMP_MAX 28                // 최대 적정 온도
+#define LETTUCE_HUM_MIN 50                 // 최소 적정 습도
+
 #define loop_sec 1000
 
-DHT dht(TEMP_PIN, DHTTYPE);
+DHT dht(TEMP_PIN, DHTTYPE); //온습도 센서 클래스
 
 int dirt_value = 0;
 int water_value = 0;
-float temp_hum;
-float temp_temp;
+float temp_hum = dht.readHumidity();        // 습도 읽기
+float temp_temp = dht.readTemperature();  // 온도 읽기 (°C)
 
 void setup() {
   Serial.begin(9600);
   pinMode(DIRT_PIN, INPUT);
-  pinMode(WATER_LED_PIN, OUTPUT);
-  dht.begin();
+  //WATER_PIN은 아날로그 신호라서 필요하지 않음
+ 	pinMode(WATER_LED_PIN, OUTPUT);
+  dht.begin(); //온습도 센서 클래스
+
 }
 
 void dirt() {
@@ -73,14 +82,26 @@ void pump() {
 }
 
 int pump_timer = 3; //최초 실행시 펌프 작동을 위함
+
 void loop() {
   dirt();
   water();
   temp();
-  if(pump_timer == 3){ //루프 3회마다 1번씩 실행
+
+  // 상추 생장 조건 기반 펌프 제어 로직
+  if (dirt_value > LETTUCE_SOIL_DRY_THRESHOLD &&
+      temp_temp >= LETTUCE_TEMP_MIN &&
+      temp_temp <= LETTUCE_TEMP_MAX &&
+      temp_hum >= LETTUCE_HUM_MIN) {
+    Serial.println("조건 만족: 펌프 작동");
     pump();
-    pump_timer = 0;
+  } else {
+    Serial.println("조건 불충분: 펌프 미작동");
   }
+
+  delay(10 * loop_sec);  // 10초마다 측정
+}
+
   else pump_timer++;
   delay(10 * loop_sec);  // 10초마다 측정
 }
