@@ -118,10 +118,10 @@ int get_pump_time(int soil_moisture) {
 
 void cooling_fan(bool fan_on) {
   if (fan_on) {
-    digitalWrite(COOLING_FAN_PIN, HIGH);  // 쿨링팬 ON
+    digitalWrite(COOLING_FAN_PIN, HIGH);  // 모스펫 게이트에 HIGH 신호 -> 쿨링팬 ON
     Serial.println("쿨링팬 ON");
   } else {
-    digitalWrite(COOLING_FAN_PIN, LOW);   // 쿨링팬 OFF
+    digitalWrite(COOLING_FAN_PIN, LOW);   // 모스펫 게이트에 LOW 신호 -> 쿨링팬 OFF
     Serial.println("쿨링팬 OFF");
   }
 }
