@@ -127,14 +127,14 @@ int get_pump_time(int soil_moisture) {
 }
 
 void cooling_fan(bool fan_on) {
-  /*if (fan_on) {
+  if (fan_on) {
     digitalWrite(COOLING_FAN_PIN, HIGH);  // 쿨링팬 ON
     Serial.println("쿨링팬 ON");
   } else {
     digitalWrite(COOLING_FAN_PIN, LOW);   // 쿨링팬 OFF
     Serial.println("쿨링팬 OFF");
-  }*/
-  digitalWrite(COOLING_FAN_PIN, HIGH);  // 쿨링팬 ON
+  }
+  //digitalWrite(COOLING_FAN_PIN, HIGH);  // 쿨링팬 ON
 }
 
 int pump_timer = 3; // 최초 실행시 펌프 작동을 위함
