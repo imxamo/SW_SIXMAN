@@ -49,7 +49,7 @@ void setup() {
   dht.begin();
 
   // led
-  pinMode(relayPin, OUTPUT);
+  pinMode(RELAY_PIN, OUTPUT);
 }
 
 void dirt() {
