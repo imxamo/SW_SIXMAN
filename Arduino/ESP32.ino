@@ -153,11 +153,11 @@ void loop() {
     Serial.println(ledState ? "켜짐" : "꺼짐");
   }
   
-  // 온도에 따른 쿨링팬 제어
-  if (temp_hum > 70 && !isnan(temp_hum)) { //temp_temp >= 30.0 && !isnan(temp_temp)
+  // 온도에 따른 쿨링팬 제어 : 습도 target 50~70%
+  if (temp_hum > 65 && !isnan(temp_hum)) {
     cooling_fan(true);
   }
-  else{
+  else if(temp_hum < 55 && !isnan(temp_hum)){
     cooling_fan(false);
   }
   
