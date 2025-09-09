@@ -1,0 +1,87 @@
+#define DAYWATER 50
+#define ONETRY 20
+#define COOLWATER 3
+#define HOT 25
+#define WET 60
+#define DRY 20
+
+struct tm ntime;
+
+int able_water;
+int cool_water, cool_beep;
+int temp, moi, grd, bot;
+int edge;
+
+void setup() {
+	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+	able_water = DAYWATER;
+	cool_water = 0;
+	cool_beep = 0;
+	edge = 61; //0~60분 범위 밖의 값을 사용
+}
+
+void loop(){
+	getLocalTime(&ntime);
+
+	if (ntime.tm_min != edge && ntime.tm_hour == 0 && ntime.tm_min == 0) {
+		able_water = DAYWATER;
+	}
+
+	if(ntime.tm_min != edge && ntime.tm_min%30 == 0){ // 30분마다
+		temp = 온도;
+		moi = 습도;
+		grd = 토양 습도;
+		bot = 물통 잔량 / 41; // 범위를 0~99로 축소
+		cool_water++;
+		cool_beep++;
+	}
+	if(bot < 30){
+		if(cool_water >= COOLWATER && grd < DRY && able_water > 0){
+			if(able_water >= ONETRY){
+				pump(상수);
+				able_water -= ONETRY;
+				cool_water = 0;
+			}
+			else{
+				pump(able_water);
+				able_water = 0;
+				cool_water = 0;
+			}
+		}
+	}
+
+	if(bot < 50 && cool_beep > 0){
+		if(bot < 30) 삐삐삐
+		else if(bot < 40) 삐삐
+		else  삐
+		cool_beep = 0;
+	}
+	
+	if(ntime.tm_min != edge && ntime.tm_hour == 6 && ntime.tm_min == 0){
+		LED 모터 켜
+	}
+
+	if(ntime.tm_min != edge && ntime.tm_hour == 22 && ntime.tm_min == 0){
+		LED 모터 꺼
+	}
+
+	if(temp > HOT || moi > WET){
+		fan(상수);
+	}
+
+	// 사이클 쇼크 만들자리
+
+	edge = ntime.tm_min; //반드시 루프 마지막에 위치
+}
+
+void pump(int time){
+	펌프 작동
+	time초 기다리기
+	펌프 중단
+}
+
+void fan(int time){
+	팬 작동
+	time초 기다리기
+	팬 중단
+}
