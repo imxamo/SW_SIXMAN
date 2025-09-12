@@ -1,30 +1,95 @@
 #include <Arduino.h>
 #include "DHT.h"
+#include <time.h>
 
 #define Water_Day_Limit 50
-#define Water_Per_Try 20
+#define Water_Per_Try 25.0 // 1회 당 출력 요구량. 나눗셈 했을 때 float 연산을 유도하기 위해 소수점을 사용.
+#define Water_Per_Sec 25.0 // 펌프 초당 출력 25~30ml
 #define Pump_Cooltime 3
 #define HOT 25
 #define WET 60
 #define DRY 20
+#define Water_Level_Caution 40
+#define Water_Level_Warning 30
+#define Water_Level_Danger 20
 
 #define COOLING_FAN_PIN 33
 #define LED_PIN 5
+#define DIRT_PIN A0
+#define WATER_PIN 34
+#define TEMP_PIN 22
+#define DHTTYPE DHT11
+
+#define PUMP_IN1 16
+#define PUMP_IN2 17
+#define PUMP_ENA 18
+
+#define PUMP_PWM_FREQ 5000 // 주파수
+#define PUMP_PWM_RESOLUTION 8 // 펌프 출력 범위를 8비트(0~255)로 설정함
 
 struct tm ntime;
+const long gmtOffset_sec = 9 * 3600;
+const int daylightOffset_sec = 0;
+const char* ntpServer = "pool.ntp.org";
+DHT dht(TEMP_PIN, DHTTYPE);
 
 int waterRemain;
-int waterCool, beepCool;
+int pumpDelay, beepDelay;
 int airTemp, airMoist, soilMoist, waterLevel;
 int edge;
 
+void pump_active(float time){
+	ledcWrite(PUMP_ENA, 255);
+	delay(time * 1000);
+	ledcWrite(PUMP_ENA, 0); 
+}
+
+void pump(){
+	if(pumpDelay >= Pump_Cooltime && soilMoist < DRY && waterRemain > 0){
+		if(waterRemain >= Water_Per_Try){
+			pump_active(Water_Per_Try/Water_Per_Sec);
+			waterRemain -= Water_Per_Try;
+			pumpDelay = 0;
+		}
+		else{
+			pump_active(waterRemain/Water_Per_Sec);
+			waterRemain = 0;
+			pumpDelay = 0;
+		}
+	}
+}
+
+void fan(){
+	  if(digitalRead(COOLING_FAN_PIN) == LOW){ // 팬이 꺼져있을 때
+    if(airTemp >= HOT || airMoist >= WET){ // 덥거나 습할때
+		  digitalWrite(COOLING_FAN_PIN, HIGH);
+	  }
+  }
+  else if(airTemp < HOT || airMoist < WET){
+		digitalWrite(COOLING_FAN_PIN, LOW);
+	}
+}
+
 void setup() {
+	Serial.begin(9600);
+	dht.begin();
 	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   pinMode(COOLING_FAN_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
 
+	// 펌프 제어 핀
+  pinMode(PUMP_IN1, OUTPUT);
+  pinMode(PUMP_IN2, OUTPUT);
+
+  // 회전 방향: IN1=HIGH, IN2=LOW
+  digitalWrite(PUMP_IN1, HIGH);
+  digitalWrite(PUMP_IN2, LOW);
+
+	ledcAttach(PUMP_ENA, PUMP_PWM_FREQ, PUMP_PWM_RESOLUTION); // 주파수와 출력 범위를 입력
+  ledcWrite(PUMP_ENA, 0); // 펌프 출력을 0으로 OFF
+
   waterRemain = Water_Day_Limit;
-	waterCool = 0, beepCool = 0;
+	pumpDelay = 0, beepDelay = 0;
 	edge = 61; //0~60분 범위 밖의 값을 사용
 }
 
@@ -35,37 +100,58 @@ void loop(){
 	 waterRemain = Water_Day_Limit  ;
 	}
 
+	/*
 	if(ntime.tm_min != edge && ntime.tm_min%30 == 0){ // 30분마다
     airTemp = 온도;
 		airMoist = 습도;
 		soilMoist = 토양 습도;
-		waterLevel = 물통 잔량 / 41; // 범위를 0~99로 축소
-		waterCool++;
-		beepCool++;
+		waterLevel = 물통 잔량;
+		pumpDelay++;
+		beepDelay++;
+	}
+	*/
+
+	if (ntime.tm_min != edge && ntime.tm_min % 30 == 0) { // 30분마다
+  // --- DHT11 온습도 ---
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  if (!isnan(h) && !isnan(t)) {
+    airTemp = (int)t;
+    airMoist = (int)h;
+    Serial.print("온도: "); Serial.print(airTemp);
+    Serial.print(" °C, 습도: "); Serial.print(airMoist); Serial.println(" %");
+  } else {
+    Serial.println("DHT11 READ ERROR");
+  }
+
+  // --- 토양 습도 ---
+  soilMoist = analogRead(DIRT_PIN);
+  Serial.print("토양 습도 값: ");
+  Serial.println(soilMoist);
+
+  // --- 물 수위 ---
+  waterLevel = analogRead(WATER_PIN);
+  Serial.print("물통 수위 값: ");
+  Serial.println(waterLevel);
+
+  pumpDelay++;
+  beepDelay++;
 	}
 
-	if(waterLevel < 30){
-		if(waterCool >= Pump_Cooltime && soilMoist < DRY && waterRemain > 0){
-			if waterRemain >= Water_Per_Try){
-				pump(상수);
-			 waterRemain -= Water_Per_Try;
-				waterCool = 0;
-			}
-			else{
-				pump waterRemain);
-			 waterRemain = 0;
-				waterCool = 0;
-			}
-		}
+
+	if(waterLevel < Water_Level_Danger){
+		pump();
 	}
 
-	if(waterLevel < 50 && beepCool > 0){
+	/*
+	if(waterLevel < 50 && beepDelay > 0){
 		if(waterLevel < 30) 삐삐삐
 		else if(waterLevel < 40) 삐삐
 		else  삐
-		beepCool = 0;
+		beepDelay = 0;
 	}
-	
+	*/
+
 	if(ntime.tm_min != edge && ntime.tm_hour == 6 && ntime.tm_min == 0){
 		digitalWrite(LED_PIN, HIGH);
 	}
@@ -74,22 +160,8 @@ void loop(){
     digitalWrite(LED_PIN, LOW);
 	}
 
-  if(digitalRead(COOLING_FAN_PIN) == LOW)){ // 팬이 꺼져있을 때
-    if(airTemp >= HOT || airMoist >= WET){ // 덥거나 습할때 
-		  digitalWrite(COOLING_FAN_PIN, HIGH);
-	  }
-  }
-  else if(airTemp < HOT || airMoist < WET){
-		digitalWrite(COOLING_FAN_PIN, LOW);
-	}
-
+	fan();
 	// 사이클 쇼크 만들자리
 
 	edge = ntime.tm_min; //반드시 루프 마지막에 위치
-}
-
-void pump(int time){
-	펌프 작동
-	time초 기다리기
-	펌프 중단
 }
