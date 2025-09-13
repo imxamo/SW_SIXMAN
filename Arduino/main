@@ -60,12 +60,12 @@ void pump(){
 }
 
 void fan(){
-	  if(digitalRead(COOLING_FAN_PIN) == LOW){ // 팬이 꺼져있을 때
-    if(airTemp >= HOT || airMoist >= WET){ // 덥거나 습할때
+	if(digitalRead(COOLING_FAN_PIN) == LOW){ // 팬이 꺼져있을 때
+    	if(airTemp >= HOT || airMoist >= WET){ // 덥거나 습할때
 		  digitalWrite(COOLING_FAN_PIN, HIGH);
-	  }
-  }
-  else if(airTemp < HOT || airMoist < WET){
+	  	}
+  	}
+  	else if(airTemp < HOT || airMoist < WET){
 		digitalWrite(COOLING_FAN_PIN, LOW);
 	}
 }
@@ -74,21 +74,21 @@ void setup() {
 	Serial.begin(9600);
 	dht.begin();
 	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  pinMode(COOLING_FAN_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
+	
+	// 제어핀 설정
+  	pinMode(COOLING_FAN_PIN, OUTPUT);
+  	pinMode(LED_PIN, OUTPUT);
+  	pinMode(PUMP_IN1, OUTPUT);
+  	pinMode(PUMP_IN2, OUTPUT);
 
-	// 펌프 제어 핀
-  pinMode(PUMP_IN1, OUTPUT);
-  pinMode(PUMP_IN2, OUTPUT);
-
-  // 회전 방향: IN1=HIGH, IN2=LOW
-  digitalWrite(PUMP_IN1, HIGH);
-  digitalWrite(PUMP_IN2, LOW);
+  	// 회전 방향: IN1=HIGH, IN2=LOW
+  	digitalWrite(PUMP_IN1, HIGH);
+  	digitalWrite(PUMP_IN2, LOW);
 
 	ledcAttach(PUMP_ENA, PUMP_PWM_FREQ, PUMP_PWM_RESOLUTION); // 주파수와 출력 범위를 입력
-  ledcWrite(PUMP_ENA, 0); // 펌프 출력을 0으로 OFF
+  	ledcWrite(PUMP_ENA, 0); // 펌프 출력을 0으로 OFF
 
-  waterRemain = Water_Day_Limit;
+  	waterRemain = Water_Day_Limit;
 	pumpDelay = 0, beepDelay = 0;
 	edge = 61; //0~60분 범위 밖의 값을 사용
 }
@@ -110,32 +110,30 @@ void loop(){
 		beepDelay++;
 	}
 	*/
-
 	if (ntime.tm_min != edge && ntime.tm_min % 30 == 0) { // 30분마다
-  // --- DHT11 온습도 ---
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-  if (!isnan(h) && !isnan(t)) {
-    airTemp = (int)t;
-    airMoist = (int)h;
-    Serial.print("온도: "); Serial.print(airTemp);
-    Serial.print(" °C, 습도: "); Serial.print(airMoist); Serial.println(" %");
-  } else {
-    Serial.println("DHT11 READ ERROR");
-  }
-
-  // --- 토양 습도 ---
-  soilMoist = analogRead(DIRT_PIN);
-  Serial.print("토양 습도 값: ");
-  Serial.println(soilMoist);
-
-  // --- 물 수위 ---
-  waterLevel = analogRead(WATER_PIN);
-  Serial.print("물통 수위 값: ");
-  Serial.println(waterLevel);
-
-  pumpDelay++;
-  beepDelay++;
+		// --- DHT11 온습도 ---
+  		float h = dht.readHumidity();
+  		float t = dht.readTemperature();
+  		if (!isnan(h) && !isnan(t)) {
+    		airTemp = (int)t;
+    		airMoist = (int)h;
+    		Serial.print("온도: "); Serial.print(airTemp);
+    		Serial.print(" °C, 습도: "); Serial.print(airMoist); Serial.println(" %");
+  		}
+		else {
+    	Serial.println("DHT11 READ ERROR");
+  		}
+		// --- 토양 습도 ---
+		soilMoist = analogRead(DIRT_PIN);
+		Serial.print("토양 습도 값: ");
+		Serial.println(soilMoist);
+		// --- 물 수위 ---
+		waterLevel = analogRead(WATER_PIN);
+		Serial.print("물통 수위 값: ");
+		Serial.println(waterLevel);
+	
+		pumpDelay++;
+		beepDelay++;
 	}
 
 
