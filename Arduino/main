@@ -4,11 +4,15 @@
 
 #define Water_Day_Limit 50
 #define Water_Per_Try 25.0 // 1회 당 출력 요구량. 나눗셈 했을 때 float 연산을 유도하기 위해 소수점을 사용.
+// 1. 펌프 초당 출력 테스트
 #define Water_Per_Sec 25.0 // 펌프 초당 출력 25~30ml
 #define Pump_Cooltime 3
 #define HOT 25
 #define WET 60
 #define DRY 20
+
+// 수위 센서 범위 : 0~4095
+// 2. Water_Level 값을 설정한다.
 #define Water_Level_Caution 40
 #define Water_Level_Warning 30
 #define Water_Level_Danger 20
@@ -36,6 +40,7 @@ DHT dht(TEMP_PIN, DHTTYPE);
 int waterRemain;
 int pumpDelay, beepDelay;
 int airTemp, airMoist, soilMoist, waterLevel;
+float waterLevelPercent;
 int edge;
 
 void pump_active(float time){
@@ -71,6 +76,7 @@ void fan(){
 }
 
 void setup() {
+	// 3. 와이파이 연결 설정한다.
 	Serial.begin(9600);
 	dht.begin();
 	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -94,22 +100,13 @@ void setup() {
 }
 
 void loop(){
+	// 4. 시간 작동되는 지 테스트
 	getLocalTime(&ntime);
 
 	if (ntime.tm_min != edge && ntime.tm_hour == 0 && ntime.tm_min == 0) {
 	 waterRemain = Water_Day_Limit  ;
 	}
 
-	/*
-	if(ntime.tm_min != edge && ntime.tm_min%30 == 0){ // 30분마다
-    airTemp = 온도;
-		airMoist = 습도;
-		soilMoist = 토양 습도;
-		waterLevel = 물통 잔량;
-		pumpDelay++;
-		beepDelay++;
-	}
-	*/
 	if (ntime.tm_min != edge && ntime.tm_min % 30 == 0) { // 30분마다
 		// --- DHT11 온습도 ---
   		float h = dht.readHumidity();
@@ -129,26 +126,31 @@ void loop(){
 		Serial.println(soilMoist);
 		// --- 물 수위 ---
 		waterLevel = analogRead(WATER_PIN);
+		waterLevelPercent = waterLevel / 40.95;
 		Serial.print("물통 수위 값: ");
-		Serial.println(waterLevel);
-	
+		Serial.print(waterLevel);
+		Serial.print(" (");
+		Serial.println(waterLevelPercent);
+		Serial.print("%)");
+
+		// 5. 센서 값을 서버로 전송
+
 		pumpDelay++;
 		beepDelay++;
 	}
 
 
-	if(waterLevel < Water_Level_Danger){
+	if(waterLevelPercent < Water_Level_Danger){
 		pump();
 	}
 
-	/*
-	if(waterLevel < 50 && beepDelay > 0){
-		if(waterLevel < 30) 삐삐삐
-		else if(waterLevel < 40) 삐삐
-		else  삐
+	
+	if(waterLevelPercent < Water_Level_Caution && beepDelay > 0){
+		if(waterLevelPercent < Water_Level_Danger) // 삐삐삐
+		else if(waterLevelPercent < Water_Level_Warning) // 삐삐
+		else // 삐
 		beepDelay = 0;
 	}
-	*/
 
 	if(ntime.tm_min != edge && ntime.tm_hour == 6 && ntime.tm_min == 0){
 		digitalWrite(LED_PIN, HIGH);
@@ -159,7 +161,8 @@ void loop(){
 	}
 
 	fan();
+
 	// 사이클 쇼크 만들자리
 
-	edge = ntime.tm_min; //반드시 루프 마지막에 위치
+	edge = ntime.tm_min; // 반드시 루프 마지막에 위치
 }
