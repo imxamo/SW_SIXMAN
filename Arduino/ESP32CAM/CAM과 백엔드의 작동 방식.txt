@@ -1,0 +1,15 @@
+1. CAM : Send to Server (Hello 신호)
+2. Server : Receive from CAM & Send to CAM (Welcome 신호)
+3. Server : 정보를 기록 {ESP32CAM : Online, 25-09-19-13:00}
+4. CAM : Wait(n1); if(Receive from Server) 정상 진행 else 재시도
+5. CAM : n2에 1번 Send to Server (PING 신호)
+6. Server : Wait(n2);
+	if(Receive from CAM){
+		Send to CAM (PONG 신호)
+		정보를 기록 {ESP32CAM : Online, 25-09-19-13:30}
+	}
+	else 정보를 기록 {ESP32CAM : Offline, 25-09-19-13:30}
+8. CAM : Wait(n1); if(Receive from Server) 정상 진행 else 재시도
+
+n1 : 응답 시간
+n2 : 정기 통신 시간
