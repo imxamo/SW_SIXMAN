@@ -5,6 +5,48 @@
 #include <time.h>
 #include <Preferences.h>
 
+#define PUMP_IN1 16
+#define PUMP_IN2 17
+#define PUMP_ENA 18
+
+// LEDC PWM 설정
+#define PUMP_CH       0      // PWM 채널
+#define PUMP_PWM_FREQ 5000   // 5 kHz
+#define PUMP_PWM_RES  8      // 8-bit (0~255)
+#define PUMP_FULL_DUTY 255   // 최대 듀티
+
+// ---- 펌프 유량 (실측 후 교체) ----
+// 예) 0.20 L/s = 200 mL/s
+float PUMP_FLOW_LPS = 0.20f;
+
+// 최소/최대 동작시간(안전)
+const unsigned long PUMP_MIN_MS = 250;   // 너무 짧은 펄스 방지(예: 0.25초)
+const unsigned long PUMP_MAX_MS = 15000; // 한 번에 15초 이상은 분할 권장
+
+// 관수 스케줄: eventL을 며칠 간격으로 줄지 (printStatus에서 구한 daysPeriod 사용)
+const char* NVS_KEY_LAST_IRRIG = "last_irrig"; // 마지막 관수 UTC epoch 저장
+
+void pump_active(float time){
+	ledcWrite(PUMP_ENA, 255);
+	delay(time * 1000);
+	ledcWrite(PUMP_ENA, 0); 
+}
+
+void pump(){
+	if(pumpDelay >= Pump_Cooltime && soilMoist < DRY && waterRemain > 0){
+		if(waterRemain >= Water_Per_Try){
+			pump_active(Water_Per_Try/Water_Per_Sec);
+			waterRemain -= Water_Per_Try;
+			pumpDelay = 0;
+		}
+		else{
+			pump_active(waterRemain/Water_Per_Sec);
+			waterRemain = 0;
+			pumpDelay = 0;
+		}
+	}
+}
+
 //////////////////////// Wi-Fi & Time ////////////////////////
 const char* WIFI_SSID = "YOUR_SSID";
 const char* WIFI_PW   = "YOUR_PASSWORD";
@@ -104,6 +146,55 @@ void stageWithLerp(int days_since, float& kc_out, float& g_out, const char*& nam
   }
 }
 
+/////////////////// L(리터)을 ms로 변환 : 실제 펌프 급수량 연동 ////////////////////
+unsigned long msForLiters(float liters) {
+  if (PUMP_FLOW_LPS <= 0.0f) return 0;
+  float sec = liters / PUMP_FLOW_LPS;
+  unsigned long ms = (unsigned long)(sec * 1000.0f);
+  if (ms < PUMP_MIN_MS) ms = PUMP_MIN_MS;
+  if (ms > PUMP_MAX_MS) ms = PUMP_MAX_MS; // 너무 길면 분할 권장
+  return ms;
+}
+
+// 펌프 ON/OFF (PWM 최대 듀티로 단순 구동)
+void pumpRunMs(unsigned long ms) {
+  // 방향핀은 setup에서 이미 설정
+  ledcWrite(PUMP_CH, PUMP_FULL_DUTY);
+  delay(ms);
+  ledcWrite(PUMP_CH, 0);
+}
+
+// L 단위로 관수 한 번 실행 (필요시 분할 관수)
+void irrigateLiters(float liters) {
+  if (liters <= 0.0f) return;
+
+  // 길면 분할(예: 10초 이상은 2회로 쪼갬)
+  const unsigned long SPLIT_THRESH_MS = 10000; // 10초
+  unsigned long ms = msForLiters(liters);
+
+  Serial.print("[관수] 목표량 ");
+  Serial.print(liters, 3);
+  Serial.print(" L → ");
+  Serial.print(ms);
+  Serial.println(" ms 가동");
+
+  if (ms <= SPLIT_THRESH_MS) {
+    pumpRunMs(ms);
+  } else {
+    unsigned long half = ms / 2;
+    pumpRunMs(half);
+    delay(1500); // 1.5초 휴지
+    pumpRunMs(ms - half);
+  }
+}
+
+// 마지막 관수시각 저장/조회 (UTC epoch)
+void setLastIrrigUtc(time_t utc) {
+  prefs.putLong64(NVS_KEY_LAST_IRRIG, (long long)utc);
+}
+time_t getLastIrrigUtc() {
+  return (time_t)prefs.getLong64(NVS_KEY_LAST_IRRIG, 0);
+}
 
 
 ///////////////////////////// setup ///////////////////////////
@@ -141,12 +232,26 @@ void setup() {
   Serial.println("  P : 현재 시각을 파종 시각으로 저장");
   Serial.println("  R : 저장된 파종 시각 삭제");
   Serial.println("  E : 현재 파라미터/계산값 출력");
+
+  // 제어핀 설정
+  pinMode(PUMP_IN1, OUTPUT);
+  pinMode(PUMP_IN2, OUTPUT);
+  // 회전 방향: IN1=HIGH, IN2=LOW
+  digitalWrite(PUMP_IN1, HIGH);
+  digitalWrite(PUMP_IN2, LOW);
+
+  // LEDC 초기화
+  ledcSetup(PUMP_CH, PUMP_PWM_FREQ, PUMP_PWM_RES);
+  ledcAttachPin(PUMP_PIN_EN, PUMP_CH);
+  ledcWrite(PUMP_CH, 0); // 펌프 OFF
+  
 }
 
 ///////////////////////////// loop ////////////////////////////
 unsigned long lastPrint = 0;
+
 void loop() {
-  // 간단한 명령 처리
+  // ===== 시리얼 명령 처리 (P/R/E) =====
   if (Serial.available()) {
     char c = Serial.read();
     if (c=='P') {
@@ -165,12 +270,47 @@ void loop() {
     }
   }
 
-  // 주기적으로 상태 출력
+  // ===== 주기적 상태 출력 =====
   if (millis() - lastPrint > 5000) {
     printStatus();
     lastPrint = millis();
   }
+
+  // ===== 관수 스케줄러 =====
+  time_t plantEpoch = prefs.getLong64(NVS_KEY_PLANT, 0);
+  if (plantEpoch != 0) {
+    int d = daysSince(plantEpoch);
+    if (d >= 0) {
+      const char* name;
+      float Kc, G;
+      stageWithLerp(d, Kc, G, name);
+
+      float dailyL    = calcDailyNeedL(ET0_MM_DAY, Kc, G);
+      float eventL    = calcEventVolumeL();
+      float daysPeriod = (dailyL > 0) ? (eventL / dailyL) : 0;
+
+      time_t nowUtc;
+      if (getNow(nowUtc) && daysPeriod > 0.0f) {
+        time_t lastUtc = getLastIrrigUtc();
+        double elapsedDays = (lastUtc > 0) ? (difftime(nowUtc, lastUtc) / 86400.0) : 9999.0;
+        // 초기 전원 인가 직후 바로 급수하고 싶지 않다면 위 9999.0을 0.0으로 바꾸세요.
+
+        // (선택) 토양/수위 조건 넣기: soilMoist, DRY, waterRemain 등의 변수 사용 중이라면 아래 주석 해제
+        // bool okSoil  = (soilMoist < DRY);
+        // bool okWater = (waterRemain > 0);
+
+        if (elapsedDays >= daysPeriod /* && okSoil && okWater */) {
+          Serial.println("[스케줄] 관수 주기 도달 → 관수 실행");
+          irrigateLiters(eventL);
+          setLastIrrigUtc(nowUtc);
+        }
+      }
+    }
+  }
+
+  delay(200);
 }
+
 
 ///////////////////////////// 출력 ////////////////////////////
 void printStatus() {
