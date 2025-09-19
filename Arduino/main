@@ -2,7 +2,7 @@
 #include "DHT.h"
 #include <time.h>
 
-#define Water_Day_Limit 50
+#define Water_Day_Limit 100
 #define Water_Per_Try 25.0 // 1회 당 출력 요구량. 나눗셈 했을 때 float 연산을 유도하기 위해 소수점을 사용.
 // 1. 펌프 초당 출력 테스트
 #define Water_Per_Sec 25.0 // 펌프 초당 출력 25~30ml
