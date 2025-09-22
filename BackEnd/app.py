@@ -3,21 +3,19 @@ import datetime
 import sqlite3
 from flask import Flask, request, Response, jsonify, send_from_directory, render_template
 
-BASE_DIR = os.path.dirname(__file__)
-FRONTEND_DIR = os.path.join(BASE_DIR, "..", "FrontEnd")
+# === 경로 설정 ===
+BACKEND_DIR = os.path.dirname(__file__)
+FRONTEND_DIR = os.path.join(BACKEND_DIR, "..", "FrontEnd")  # gallery.html 위치
+UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
+DB_PATH = os.path.join(BACKEND_DIR, "cam_server.db")
 
-app = Flask(__name__, template_folder=os.path.join(FRONTEND_DIR))
-
-# === 설정 ===
-BASE_DIR = os.path.dirname(__file__)
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-DB_PATH = os.path.join(BASE_DIR, "cam_server.db")
+# Flask 앱 생성 (FrontEnd 안을 템플릿 폴더로 지정)
+app = Flask(__name__, template_folder=FRONTEND_DIR)
 
 # === 전역 flag (사진 촬영 요청용) ===
 trigger_flag = {"pending": False}
-
 
 # === DB 초기화 ===
 def init_db():
