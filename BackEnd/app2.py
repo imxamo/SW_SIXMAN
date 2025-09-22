@@ -1,9 +1,9 @@
 import os
 import datetime
 import sqlite3
-from flask import Flask, request, Response, jsonify, render_template, send_from_directory
+from flask import Flask, request, Response, jsonify, send_from_directory, render_template
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 
 # === 설정 ===
 BASE_DIR = os.path.dirname(__file__)
@@ -11,6 +11,9 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 DB_PATH = os.path.join(BASE_DIR, "cam_server.db")
+
+# === 전역 flag (사진 촬영 요청용) ===
+trigger_flag = {"pending": False}
 
 
 # === DB 초기화 ===
@@ -60,22 +63,20 @@ def insert_upload_log(file_path):
 
 @app.get("/get")
 def get_poll():
-    """
-    ESP32-CAM GET 신호
-    - 무조건 "200" 반환
-    - DB에 {device_id, timestamp, "Offline"} 저장
-    """
+    """ESP32-CAM GET 신호"""
     device_id = request.args.get("id", "ESP32CAM-UNKNOWN")
-    insert_device_log(device_id, "Offline")
-    return Response("200", mimetype="text/plain")
+    insert_device_log(device_id, "Online")
+
+    if trigger_flag["pending"]:
+        trigger_flag["pending"] = False
+        return Response("201", mimetype="text/plain")
+    else:
+        return Response("200", mimetype="text/plain")
 
 
 @app.post("/upload")
 def upload():
-    """
-    ESP32-CAM POST 신호 (이미지 업로드)
-    - 파일 저장 후 DB 기록
-    """
+    """ESP32-CAM POST 신호 (이미지 업로드)"""
     ct = request.content_type or ""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     saved_path = None
@@ -107,7 +108,6 @@ def upload():
             with open(saved_path, "wb") as f:
                 f.write(data)
 
-        # DB 저장
         insert_upload_log(saved_path)
 
         return jsonify({"status": "ok", "saved": os.path.basename(saved_path)}), 200
@@ -116,7 +116,13 @@ def upload():
         return jsonify({"status": "fail", "error": str(e)}), 500
 
 
-# === 새로 추가되는 부분 ===
+@app.get("/trigger")
+def trigger():
+    """프론트에서 '사진 찍기' 버튼 누르면 호출"""
+    trigger_flag["pending"] = True
+    return jsonify({"status": "ok", "message": "다음 GET 시 CAM에 201 반환 예정"})
+
+
 @app.get("/gallery")
 def gallery():
     """업로드된 사진들을 웹 페이지로 보여줌"""
@@ -125,42 +131,7 @@ def gallery():
     cur.execute("SELECT file_path, timestamp FROM uploads ORDER BY id DESC")
     rows = cur.fetchall()
     conn.close()
-
-    # HTML 직접 생성 (템플릿 없이도 가능)
-    html = """
-    <!DOCTYPE html>
-    <html lang="ko">
-    <head>
-        <meta charset="UTF-8">
-        <title>ESP32-CAM 업로드 갤러리</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
-            h1 { color: #333; }
-            .item { background: white; border: 1px solid #ddd;
-                    padding: 10px; margin-bottom: 20px;
-                    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-                    max-width: 400px; }
-            .item img { max-width: 100%; border-radius: 5px; }
-            .timestamp { font-size: 0.9em; color: #666; margin-bottom: 8px; }
-            a { color: #0066cc; text-decoration: none; }
-        </style>
-    </head>
-    <body>
-        <h1>📷 ESP32-CAM 업로드 갤러리</h1>
-    """
-
-    for file_path, ts in rows:
-        fname = os.path.basename(file_path)
-        html += "<div class='item'>"
-        html += f"<div class='timestamp'>업로드 시각: {ts}</div>"
-        if fname.lower().endswith((".png", ".jpg", ".jpeg", ".gif")):
-            html += f"<img src='/uploads/{fname}' alt='uploaded image'>"
-        else:
-            html += f"<a href='/uploads/{fname}'>파일 다운로드 ({fname})</a>"
-        html += "</div>"
-
-    html += "</body></html>"
-    return html
+    return render_template("gallery.html", rows=rows)
 
 
 @app.get("/uploads/<path:filename>")
