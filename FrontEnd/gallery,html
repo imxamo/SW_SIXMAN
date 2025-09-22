@@ -12,44 +12,16 @@
                 max-width: 400px; }
         .item img { max-width: 100%; border-radius: 5px; }
         .timestamp { font-size: 0.9em; color: #666; margin-bottom: 8px; }
+        a { color: #0066cc; text-decoration: none; }
         button { padding: 10px 20px; background: #0066cc; color: white;
-                 border: none; border-radius: 5px; cursor: pointer; }
+                 border: none; border-radius: 5px; cursor: pointer; margin-bottom:20px; }
         button:hover { background: #004999; }
     </style>
 </head>
 <body>
     <h1>📷 ESP32-CAM 업로드 갤러리</h1>
 
-    <!-- 사진 찍기 버튼 -->
     <button onclick="takePhoto()">📸 사진 찍기</button>
     <p id="status"></p>
 
-    <script>
-        function takePhoto() {
-            fetch('/trigger')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("status").innerText = "다음 GET 시 CAM이 사진을 전송합니다!";
-                })
-                .catch(err => {
-                    document.getElementById("status").innerText = "에러 발생: " + err;
-                });
-        }
-    </script>
-
-    <hr>
-
-    {% for file_path, ts in rows %}
-    <div class="item">
-        <div class="timestamp">업로드 시각: {{ ts }}</div>
-        {% if file_path.endswith('.jpg') or file_path.endswith('.jpeg') 
-              or file_path.endswith('.png') or file_path.endswith('.gif') %}
-            <img src="/uploads/{{ file_path.split('/')[-1] }}" alt="uploaded image">
-        {% else %}
-            <a href="/uploads/{{ file_path.split('/')[-1] }}">파일 다운로드 ({{ file_path.split('/')[-1] }})</a>
-        {% endif %}
-    </div>
-    {% endfor %}
-
-</body>
-</html>
+    <sc
