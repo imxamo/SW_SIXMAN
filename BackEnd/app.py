@@ -3,7 +3,10 @@ import datetime
 import sqlite3
 from flask import Flask, request, Response, jsonify, send_from_directory, render_template
 
-app = Flask(__name__, template_folder="templates")
+BASE_DIR = os.path.dirname(__file__)
+FRONTEND_DIR = os.path.join(BASE_DIR, "..", "FrontEnd")
+
+app = Flask(__name__, template_folder=os.path.join(FRONTEND_DIR))
 
 # === 설정 ===
 BASE_DIR = os.path.dirname(__file__)
