@@ -7,8 +7,8 @@
 // === 사용자 설정 ===
 const char* ssid       = "YOUR_WIFI_SSID";
 const char* password   = "YOUR_WIFI_PASSWORD";
-const char* serverUrl  = "http://yourserver.com/get";   // GET 폴링
-const char* uploadUrl  = "http://yourserver.com/upload";  // POST 업로드
+const char* serverUrl  = "http://116.124.191.174:15020/get";   // GET 폴링
+const char* uploadUrl  = "http://116.124.191.174:15020/upload";  // POST 업로드
 
 int bfHour;  // 마지막으로 전송한 시간(중복 방지)
 
@@ -145,3 +145,4 @@ void loop() {
   // 실패했거나 WELCOME 아니면 30초 후 재시도
   delay(30 * 1000);
 }
+
