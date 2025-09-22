@@ -1,5 +1,6 @@
 import os
 import datetime
+import sqlite3
 from flask import Flask, request, Response, jsonify
 
 app = Flask(__name__)
@@ -8,23 +9,71 @@ app = Flask(__name__)
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+DB_PATH = os.path.join(os.path.dirname(__file__), "cam_server.db")
+
+
+# === DB 초기화 ===
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    # 장치 로그 테이블
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS device_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT,
+            timestamp TEXT,
+            status TEXT
+        )
+    """)
+    # 업로드 로그 테이블
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS uploads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_path TEXT,
+            timestamp TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def insert_device_log(device_id, status):
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO device_logs (device_id, timestamp, status) VALUES (?, ?, ?)",
+                (device_id, ts, status))
+    conn.commit()
+    conn.close()
+
+
+def insert_upload_log(file_path):
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO uploads (file_path, timestamp) VALUES (?, ?)",
+                (file_path, ts))
+    conn.commit()
+    conn.close()
+
 
 @app.get("/get")
 def get_poll():
     """
-    ESP32-CAM이 주기적으로 GET 요청을 보내는 엔드포인트
-    - 무조건 "200"만 반환
+    ESP32-CAM GET 신호
+    - 무조건 "200" 반환
+    - DB에 {device_id, timestamp, "Offline"} 저장
     """
+    device_id = request.args.get("id", "ESP32CAM-UNKNOWN")
+    insert_device_log(device_id, "Offline")
     return Response("200", mimetype="text/plain")
 
 
 @app.post("/upload")
 def upload():
     """
-    ESP32-CAM이 POST로 이미지를 업로드하는 엔드포인트
-    - text/plain: 문자열로 저장 (테스트용)
-    - multipart/form-data: file 필드에서 이미지 추출
-    - application/octet-stream: 원시 바이트 스트림 저장
+    ESP32-CAM POST 신호 (이미지 업로드)
+    - 파일 저장 후 DB 기록
     """
     ct = request.content_type or ""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -57,6 +106,9 @@ def upload():
             with open(saved_path, "wb") as f:
                 f.write(data)
 
+        # DB 저장
+        insert_upload_log(saved_path)
+
         return jsonify({"status": "ok", "saved": os.path.basename(saved_path)}), 200
 
     except Exception as e:
@@ -64,4 +116,5 @@ def upload():
 
 
 if __name__ == "__main__":
+    init_db()
     app.run(host="0.0.0.0", port=8000, debug=False)
