@@ -82,4 +82,4 @@ def health():
 
 if __name__ == "__main__":
     # 학교가 지정한 포트로 바꾸세요
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=15020)
