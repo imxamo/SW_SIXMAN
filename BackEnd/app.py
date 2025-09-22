@@ -9,9 +9,7 @@ FRONTEND_DIR = os.path.join(BACKEND_DIR, "..", "FrontEnd")  # gallery.html 위�
 UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
 DB_PATH = os.path.join(BACKEND_DIR, "cam_server.db")
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# Flask 앱 생성 (FrontEnd 안을 템플릿 폴더로 지정)
+# Flask 앱 생성
 app = Flask(__name__, template_folder=FRONTEND_DIR)
 
 # === 전역 flag (사진 촬영 요청용) ===
