@@ -24,4 +24,34 @@
     <button onclick="takePhoto()">📸 사진 찍기</button>
     <p id="status"></p>
 
-    <sc
+    <script>
+        function takePhoto() {
+            fetch('/trigger')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("status").innerText =
+                        "다음 GET 시 CAM이 사진을 찍어 전송합니다!";
+                })
+                .catch(err => {
+                    document.getElementById("status").innerText = "에러 발생: " + err;
+                });
+        }
+    </script>
+
+    <hr>
+
+    {% for file_path, ts in rows %}
+    <div class="item">
+        <div class="timestamp">업로드 시각: {{ ts }}</div>
+        {% if file_path.endswith('.jpg') or file_path.endswith('.jpeg')
+              or file_path.endswith('.png') or file_path.endswith('.gif') %}
+            <img src="/uploads/{{ file_path.split('/')[-1] }}" alt="uploaded image">
+        {% else %}
+            <a href="/uploads/{{ file_path.split('/')[-1] }}">
+                파일 다운로드 ({{ file_path.split('/')[-1] }})
+            </a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>
