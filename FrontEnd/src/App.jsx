@@ -23,11 +23,16 @@ function App() {
     formData.append("file", image);
 
     try {
-      const response = await fetch("http://116.124.191.174:15020/analyze", {
+      const response = await fetch("/api/predict", {
         method: "POST",
         body: formData,
       });
       const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+      throw new Error(data.error || "서버 오류");
+    }
+
       setResult(data.result); // API 결과 표시
     } catch (error) {
       console.error(error);
