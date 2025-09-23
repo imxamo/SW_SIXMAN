@@ -71,22 +71,6 @@ def predict():
     code = CLASS_IDS[idx]
     return jsonify({"ok":True,"class_idx":idx,"disease_code":code,
                     "disease_name":CLASS_NAMES[code],"confidence":round(conf,4)})
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'file' not in request.files:
-        return "No file part", 400
-
-    file = request.files['file']
-    filename = "capture.jpg"  # 원하는 이름, 필요하면 동적으로 바꿔도 됨
-    file.save(filename)
-
-    return "OK", 200
-
-
-@app.route('/get', methods=['GET'])
-def get():
-    # ESP32-CAM이 상태 확인할 때 호출
-    return "200"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=15020)   # 학교 지정 포트 유지
