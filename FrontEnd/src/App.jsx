@@ -33,13 +33,14 @@ function App() {
       throw new Error(data.error || "서버 오류");
     }
 
-      setResult(data.result); // API 결과 표시
-    } catch (error) {
-      console.error(error);
-      setResult("분석 중 오류 발생!");
-    }
-  };
-
+    // 서버 응답 스키마에 맞춰 결과 문자열 구성
+    const pretty = `${data.disease_name} (${data.disease_code}) · ${(data.confidence*100).toFixed(1)}%`;
+    setResult(pretty);
+  } catch (error) {
+    console.error(error);
+    setResult("분석 중 오류 발생!");
+  }
+};
   return (
     <div style={styles.container}>
       <h1>AI 이미지 분석</h1>
