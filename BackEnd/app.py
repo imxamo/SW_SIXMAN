@@ -97,7 +97,7 @@ def upload():
 
         elif ct.startswith("application/octet-stream"):
             data = request.get_data()
-            saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}.bin")
+            saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}.jpg")
             with open(saved_path, "wb") as f:
                 f.write(data)
 
