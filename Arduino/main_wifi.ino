@@ -1,6 +1,10 @@
 #include <Arduino.h>
 #include "DHT.h"
 #include <time.h>
+// ★
+#include <WiFi.h>
+#include <HTTPClient.h>
+// ★
 
 #define Water_Day_Limit 100
 #define Water_Per_Try 25.0 // 1회 당 출력 요구량. 나눗셈 했을 때 float 연산을 유도하기 위해 소수점을 사용.
@@ -31,6 +35,12 @@
 #define PUMP_PWM_FREQ 5000 // 주파수
 #define PUMP_PWM_RESOLUTION 8 // 펌프 출력 범위를 8비트(0~255)로 설정함
 
+// ★
+// ===== Wi-Fi 설정 =====
+const char* ssid = "JJY_WIFI";       // 와이파이 SSID
+const char* password = "62935701";   // 와이파이 비밀번호
+// ★
+
 struct tm ntime;
 const long gmtOffset_sec = 9 * 3600;
 const int daylightOffset_sec = 0;
@@ -41,12 +51,12 @@ int waterRemain;
 int pumpDelay, beepDelay;
 int airTemp, airMoist, soilMoist, waterLevel;
 float waterLevelPercent;
-int edge;
+int edge_hour, edge_minute;
 
 void pump_active(float time){
 	ledcWrite(PUMP_ENA, 255);
 	delay(time * 1000);
-	ledcWrite(PUMP_ENA, 0); 
+	ledcWrite(PUMP_ENA, 0);
 }
 
 void pump(){
@@ -74,6 +84,24 @@ void fan(){
 		digitalWrite(COOLING_FAN_PIN, LOW);
 	}
 }
+// ★
+void wifi_connect(){
+    // === Wi-Fi 연결 ===
+    WiFi.begin(ssid, password);
+    Serial.print("WiFi connecting");
+    int wifiFailCounter = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+        wifiFailCounter++;
+        if (wifiFailCounter == 10) {
+            WiFi.begin(ssid, password);
+            wifiFailCounter = 0;
+        }
+    }
+    Serial.println(" connected!");
+}
+// ★
 
 void setup() {
 	// 3. 와이파이 연결 설정한다.
@@ -96,18 +124,22 @@ void setup() {
 
   	waterRemain = Water_Day_Limit;
 	pumpDelay = 0, beepDelay = 0;
-	edge = 61; //0~60분 범위 밖의 값을 사용
+	edge_hour = 61; //0~60분 범위 밖의 값을 사용
+    edge_minute = 61;
+
+    wifi_connect();
 }
 
 void loop(){
 	// 4. 시간 작동되는 지 테스트
 	getLocalTime(&ntime);
 
-	if (ntime.tm_min != edge && ntime.tm_hour == 0 && ntime.tm_min == 0) {
-	 waterRemain = Water_Day_Limit  ;
+    // 매일 0시
+	if (ntime.tm_hour != edge_hour && ntime.tm_hour == 0) {
+	 waterRemain = Water_Day_Limit;
 	}
 
-	if (ntime.tm_min != edge && ntime.tm_min % 30 == 0) { // 30분마다
+	if (ntime.tm_min != edge_minute && ntime.tm_min % 30 == 0) { // 30분마다
 		// --- DHT11 온습도 ---
   		float h = dht.readHumidity();
   		float t = dht.readTemperature();
@@ -152,17 +184,54 @@ void loop(){
 		beepDelay = 0;
 	}
 
-	if(ntime.tm_min != edge && ntime.tm_hour == 6 && ntime.tm_min == 0){
+	if(ntime.tm_min != edge_hour && ntime.tm_hour == 6 && ntime.tm_min == 0){
 		digitalWrite(LED_PIN, HIGH);
 	}
 
-	if(ntime.tm_min != edge && ntime.tm_hour == 22 && ntime.tm_min == 0){
+	if(ntime.tm_min != edge_hour && ntime.tm_hour == 22 && ntime.tm_min == 0){
     digitalWrite(LED_PIN, LOW);
 	}
 
 	fan();
 
+    wifi_connect();
+    
+    // 서버 접속 begin
+    HTTPClient http;
+    http.begin(serverUrl);
+    http.setTimeout(TIMEOUT * 1000);
+
+    int httpCode = http.GET();
+    if (httpCode > 0) {
+        String payload = http.getString();
+        payload.trim();
+        Serial.println("응답 도착 : " + payload);
+
+        if (payload == "200") {
+            // 서버 폴링
+            httpCode = http.GET();
+            if (httpCode > 0) {
+                String body = http.getString();
+                body.trim();
+                if (body == "200") {
+                    Serial.println("응답 도착 : " + body);
+                } else if (body == "201") {
+                    Serial.println("응답 도착 : " + body);
+                    if (imageSend() == 1) break;
+                }
+            } else {
+                Serial.printf("연결 실패 : %s\n", http.errorToString(httpCode).c_str());
+                break;
+            }
+        }
+    } else {
+        Serial.printf("연결 실패 : %s\n", http.errorToString(httpCode).c_str());
+    }
+
+    http.end();
+
 	// 사이클 쇼크 만들자리
 
-	edge = ntime.tm_min; // 반드시 루프 마지막에 위치
+	edge_hour = ntime.tm_hour; // 반드시 루프 마지막에 위치
+    edge_minute = ntime.tm_min;
 }
