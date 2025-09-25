@@ -2,8 +2,8 @@
 #include "time.h"
 
 // ===== WiFi 설정 =====
-const char* ssid = "YOUR_WIFI";
-const char* password = "YOUR_PASS";
+const char* ssid = "JJY_WIFI";
+const char* password = "62935701";
 
 // ===== 시간 설정 =====
 #define START_HOUR 6               // 하루 시작 시각
