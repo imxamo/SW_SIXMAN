@@ -194,8 +194,11 @@ void loop(){
 
 	fan();
 
-    wifi_connect();
-    
+    if (WiFi.status() != WL_CONNECTED) {
+          Serial.println("Wifi 연결 끊김. 재접속 시도.");
+        wifi_connect();
+    }
+
     // 서버 접속 begin
     HTTPClient http;
     http.begin(serverUrl);
@@ -208,6 +211,7 @@ void loop(){
         Serial.println("응답 도착 : " + payload);
 
         if (payload == "200") {
+            /*
             // 서버 폴링
             httpCode = http.GET();
             if (httpCode > 0) {
@@ -223,6 +227,7 @@ void loop(){
                 Serial.printf("연결 실패 : %s\n", http.errorToString(httpCode).c_str());
                 break;
             }
+            */
         }
     } else {
         Serial.printf("연결 실패 : %s\n", http.errorToString(httpCode).c_str());
