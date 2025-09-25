@@ -1,168 +1,106 @@
-#include <Arduino.h>
-#include "DHT.h"
-#include <time.h>
+#include <WiFi.h>
+#include "time.h"
 
-#define Water_Day_Limit 100
-#define Water_Per_Try 25.0 // 1회 당 출력 요구량. 나눗셈 했을 때 float 연산을 유도하기 위해 소수점을 사용.
-// 1. 펌프 초당 출력 테스트
-#define Water_Per_Sec 25.0 // 펌프 초당 출력 25~30ml
-#define Pump_Cooltime 3
-#define HOT 25
-#define WET 60
-#define DRY 20
+// ===== WiFi 설정 =====
+const char* ssid = "YOUR_WIFI";
+const char* password = "YOUR_PASS";
 
-// 수위 센서 범위 : 0~4095
-// 2. Water_Level 값을 설정한다.
-#define Water_Level_Caution 40
-#define Water_Level_Warning 30
-#define Water_Level_Danger 20
+// ===== 시간 설정 =====
+#define START_HOUR 6               // 하루 시작 시각
+#define LIGHT_GOAL_HOURS 16        // 하루 채광 목표 (시간)
 
-#define COOLING_FAN_PIN 33
+// ===== 핀 설정 =====
 #define LED_PIN 5
-#define DIRT_PIN A0
-#define WATER_PIN 34
-#define TEMP_PIN 22
-#define DHTTYPE DHT11
+#define LDR_PIN 34                 // 조도센서 아날로그 핀
 
-#define PUMP_IN1 16
-#define PUMP_IN2 17
-#define PUMP_ENA 18
+// ===== 상태 변수 =====
+float light_hours_count = 0;        // 채광 카운터
+bool sunlight = false;              // 조도 센서 : 채광 여부
 
-#define PUMP_PWM_FREQ 5000 // 주파수
-#define PUMP_PWM_RESOLUTION 8 // 펌프 출력 범위를 8비트(0~255)로 설정함
-
-struct tm ntime;
-const long gmtOffset_sec = 9 * 3600;
-const int daylightOffset_sec = 0;
+// ===== NTP 서버 설정 =====
 const char* ntpServer = "pool.ntp.org";
-DHT dht(TEMP_PIN, DHTTYPE);
+const long gmtOffset_sec = 9 * 3600;    // 한국 UTC+9
+const int daylightOffset_sec = 0;
 
-int waterRemain;
-int pumpDelay, beepDelay;
-int airTemp, airMoist, soilMoist, waterLevel;
-float waterLevelPercent;
-int edge;
-
-void pump_active(float time){
-	ledcWrite(PUMP_ENA, 255);
-	delay(time * 1000);
-	ledcWrite(PUMP_ENA, 0); 
-}
-
-void pump(){
-	if(pumpDelay >= Pump_Cooltime && soilMoist < DRY && waterRemain > 0){
-		if(waterRemain >= Water_Per_Try){
-			pump_active(Water_Per_Try/Water_Per_Sec);
-			waterRemain -= Water_Per_Try;
-			pumpDelay = 0;
-		}
-		else{
-			pump_active(waterRemain/Water_Per_Sec);
-			waterRemain = 0;
-			pumpDelay = 0;
-		}
-	}
-}
-
-void fan(){
-	if(digitalRead(COOLING_FAN_PIN) == LOW){ // 팬이 꺼져있을 때
-    	if(airTemp >= HOT || airMoist >= WET){ // 덥거나 습할때
-		  digitalWrite(COOLING_FAN_PIN, HIGH);
-	  	}
-  	}
-  	else if(airTemp < HOT || airMoist < WET){
-		digitalWrite(COOLING_FAN_PIN, LOW);
-	}
-}
+time_t last_check_time;
 
 void setup() {
-	// 3. 와이파이 연결 설정한다.
-	Serial.begin(9600);
-	dht.begin();
-	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-	
-	// 제어핀 설정
-  	pinMode(COOLING_FAN_PIN, OUTPUT);
-  	pinMode(LED_PIN, OUTPUT);
-  	pinMode(PUMP_IN1, OUTPUT);
-  	pinMode(PUMP_IN2, OUTPUT);
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
 
-  	// 회전 방향: IN1=HIGH, IN2=LOW
-  	digitalWrite(PUMP_IN1, HIGH);
-  	digitalWrite(PUMP_IN2, LOW);
+  // WiFi 연결
+  WiFi.begin(ssid, password);
+  Serial.print("WiFi 연결 중");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi 연결 완료!");
 
-	ledcAttach(PUMP_ENA, PUMP_PWM_FREQ, PUMP_PWM_RESOLUTION); // 주파수와 출력 범위를 입력
-  	ledcWrite(PUMP_ENA, 0); // 펌프 출력을 0으로 OFF
+  // NTP 동기화
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-  	waterRemain = Water_Day_Limit;
-	pumpDelay = 0, beepDelay = 0;
-	edge = 61; //0~60분 범위 밖의 값을 사용
+  // 초기 시간 기록
+  last_check_time = time(nullptr);
 }
 
-void loop(){
-	// 4. 시간 작동되는 지 테스트
-	getLocalTime(&ntime);
+void loop() {
+  // 현재 시각 불러오기
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("시간 불러오기 실패");
+    delay(1000);
+    return;
+  }
 
-	if (ntime.tm_min != edge && ntime.tm_hour == 0 && ntime.tm_min == 0) {
-	 waterRemain = Water_Day_Limit  ;
-	}
+  int hour = timeinfo.tm_hour;
+  int minute = timeinfo.tm_min;
+  int second = timeinfo.tm_sec;
 
-	if (ntime.tm_min != edge && ntime.tm_min % 30 == 0) { // 30분마다
-		// --- DHT11 온습도 ---
-  		float h = dht.readHumidity();
-  		float t = dht.readTemperature();
-  		if (!isnan(h) && !isnan(t)) {
-    		airTemp = (int)t;
-    		airMoist = (int)h;
-    		Serial.print("온도: "); Serial.print(airTemp);
-    		Serial.print(" °C, 습도: "); Serial.print(airMoist); Serial.println(" %");
-  		}
-		else {
-    	Serial.println("DHT11 READ ERROR");
-  		}
-		// --- 토양 습도 ---
-		soilMoist = analogRead(DIRT_PIN);
-		Serial.print("토양 습도 값: ");
-		Serial.println(soilMoist);
-		// --- 물 수위 ---
-		waterLevel = analogRead(WATER_PIN);
-		waterLevelPercent = waterLevel / 40.95;
-		Serial.print("물통 수위 값: ");
-		Serial.print(waterLevel);
-		Serial.print(" (");
-		Serial.println(waterLevelPercent);
-		Serial.print("%)");
-
-		// 5. 센서 값을 서버로 전송
-
-		pumpDelay++;
-		beepDelay++;
-	}
-
-
-	if(waterLevelPercent < Water_Level_Danger){
-		pump();
-	}
-
-	
-	if(waterLevelPercent < Water_Level_Caution && beepDelay > 0){
-		if(waterLevelPercent < Water_Level_Danger) // 삐삐삐
-		else if(waterLevelPercent < Water_Level_Warning) // 삐삐
-		else // 삐
-		beepDelay = 0;
-	}
-
-	if(ntime.tm_min != edge && ntime.tm_hour == 6 && ntime.tm_min == 0){
-		digitalWrite(LED_PIN, HIGH);
-	}
-
-	if(ntime.tm_min != edge && ntime.tm_hour == 22 && ntime.tm_min == 0){
+  // 하루 시작 전 (자정 ~ 06:00) → 카운터 리셋 & LED OFF
+  if (hour < START_HOUR) {
+    light_hours_count = 0;
     digitalWrite(LED_PIN, LOW);
-	}
+  }
 
-	fan();
+  // 채광 시간대 (06:00 ~ 22:00) 에만 LED on/off 판단
+  else if (hour >= START_HOUR && hour < START_HOUR + LIGHT_GOAL_HOURS) {
+    // 경과 시간 계산 (Δt 누적)
+    time_t now = time(nullptr);
+    int delta = difftime(now, last_check_time);
+    last_check_time = now;
 
-	// 사이클 쇼크 만들자리
+    // 조도센서 판정 (밝기 임계값은 환경에 맞게 조정 필요)
+    int ldr_value = analogRead(LDR_PIN);
+    sunlight = (ldr_value > 1000); // 플래그
 
-	edge = ntime.tm_min; // 반드시 루프 마지막에 위치
+    // 카운터 증가 (빛 공급이 있을 때만)
+    if (light_hours_count < LIGHT_GOAL_HOURS) {
+      if (sunlight) {
+        digitalWrite(LED_PIN, LOW); // 해 있음 → LED OFF
+        light_hours_count += delta / 3600.0;
+      }
+      else {
+        digitalWrite(LED_PIN, HIGH); // 해 없음 → LED ON
+        light_hours_count += delta / 3600.0;
+      }
+    }
+    else {
+      digitalWrite(LED_PIN, LOW); // 목표 달성 시 LED OFF
+    }
+  }
+
+  // 하루 종료 (22:00 ~ 자정) → LED OFF
+  else {
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  // 상태 출력
+  Serial.printf("시간 %02d:%02d:%02d | 누적 %.2f h | LED %s | LDR %d\n",
+                hour, minute, second,
+                light_hours_count,
+                digitalRead(LED_PIN) ? "ON" : "OFF",
+                analogRead(LDR_PIN));
+
+  delay(1000); // 1초 간격 체크
 }
