@@ -254,13 +254,14 @@ const styles = {
     minHeight: "100vh",
   },
   layout: {
-    display: "flex",
-    alignItems: "flex-start",
+    display: "grid",
+    gridTemplateColumns: "800px 250px",
     justifyContent: "center",
     gap: "40px",
   },
   mainContent: {
     Width: "800px",
+    flexShrink: 0,
   },
   title: {
     color: "#2c3e50",
@@ -275,6 +276,7 @@ const styles = {
     textAlign: "left",
     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
     color: "#2c3e50",
+    flexShrink: 0,
   },
   sensorList: {
     listStyle: "none",
