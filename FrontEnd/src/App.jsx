@@ -253,13 +253,14 @@ const styles = {
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",
   },
-  layout: {
-  display: "grid",
-  gridTemplateColumns: "800px 250px",
+layout: {
+  display: "flex",
+  justifyContent: "center", // 전체 중앙 정렬
+  alignItems: "flex-start",
   gap: "40px",
-  margin: "0 auto",         // 전체를 가운데로
-  width: "fit-content",     // 그리드 크기만큼만 차지
+  width: "100%",
 },
+
 
   mainContent: {
     Width: "800px",
