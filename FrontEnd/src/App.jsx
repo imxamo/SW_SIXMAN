@@ -13,7 +13,19 @@ function App() {
   useEffect(() => {
     fetchUploadedImages();
   }, []);
-  
+
+  const fetchUploadedImages = async () => {
+    try {
+      const response = await fetch("/api/uploads");
+      const data = await response.json();
+      if (data.ok) {
+        setUploadedImages(data.uploads);
+      }
+    } catch (error) {
+      console.error("이미지 목록 로딩 실패:", error);
+    }
+  };
+
   // 센서 데이터 주기적 fetch
   useEffect(() => {
     const fetchSensor = async () => {
@@ -27,23 +39,11 @@ function App() {
         console.error("센서 데이터 불러오기 실패:", err);
       }
     };
-  
+
     fetchSensor();
     const interval = setInterval(fetchSensor, 5000); // 5초마다 갱신
     return () => clearInterval(interval);
   }, []);
-
-  const fetchUploadedImages = async () => {
-    try {
-      const response = await fetch("/api/uploads");
-      const data = await response.json();
-      if (data.ok) {
-        setUploadedImages(data.uploads);
-      }
-    } catch (error) {
-      console.error("이미지 목록 로딩 실패:", error);
-    }
-  };
 
   // 파일 선택 (직접 업로드)
   const handleFileChange = (e) => {
@@ -76,13 +76,9 @@ function App() {
     try {
       let formData = new FormData();
 
-      // 직접 업로드한 파일인 경우
       if (image instanceof File) {
         formData.append("file", image);
-      } 
-      // 갤러리에서 선택한 이미지인 경우
-      else if (image.url) {
-        // 서버에서 이미지를 다시 가져와서 Blob으로 변환
+      } else if (image.url) {
         const response = await fetch(image.url);
         const blob = await response.blob();
         formData.append("file", blob, image.filename);
@@ -118,7 +114,6 @@ function App() {
       const data = await response.json();
       if (data.status === "ok") {
         alert("카메라 촬영 요청을 보냈습니다!");
-        // 3초 후 이미지 목록 새로고침
         setTimeout(() => {
           fetchUploadedImages();
         }, 3000);
@@ -131,121 +126,119 @@ function App() {
 
   return (
     <div style={styles.container}>
-
-      <div style={styles.headerRow}>
-      <div style={styles.sensorBox}>
-        <h3>🌡️ 실시간 센서값</h3>
-        {sensorData ? (
-          <ul style={styles.sensorList}>
-            <li>온도: {sensorData.temperature} °C</li>
-            <li>습도: {sensorData.humidity} %</li>
-            <li>토양 수분: {sensorData.soil_moisture}</li>
-            <li>수위: {sensorData.water_level} %</li>
-            <li>⏱ {sensorData.timestamp}</li>
-          </ul>
-        ) : (
-          <p>데이터 수신 대기중...</p>
-        )}
-      </div>
-        
-      <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
-      
-        {/* 기존 내용 (오른쪽 분석/갤러리 탭) */}
+      <div style={styles.layout}>
+        {/* 왼쪽: 기존 메인 콘텐츠 */}
         <div style={styles.mainContent}>
-          {/* 기존의 탭/이미지 분석/갤러리 코드 */}
-        </div>
-      </div>
+          <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
 
-      {/* 탭 메뉴 */}
-      <div style={styles.tabContainer}>
-        <button
-          style={activeTab === "upload" ? styles.tabActive : styles.tab}
-          onClick={() => setActiveTab("upload")}
-        >
-          이미지 분석
-        </button>
-        <button
-          style={activeTab === "gallery" ? styles.tabActive : styles.tab}
-          onClick={() => setActiveTab("gallery")}
-        >
-          촬영 갤러리
-        </button>
-      </div>
-
-      {/* 이미지 분석 탭 */}
-      {activeTab === "upload" && (
-        <div style={styles.content}>
-          <div style={styles.uploadBox}>
-            <label htmlFor="file-upload" style={styles.uploadLabel}>
-              📁 이미지 업로드
-            </label>
-            <input
-              id="file-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              style={styles.fileInput}
-            />
-          </div>
-
-          {imagePreview && (
-            <div style={styles.previewContainer}>
-              <img
-                src={imagePreview}
-                alt="preview"
-                style={styles.previewImage}
-              />
-            </div>
-          )}
-
-          <button
-            onClick={handleAnalyze}
-            style={styles.analyzeButton}
-            disabled={loading}
-          >
-            {loading ? "분석 중..." : "🔍 분석하기"}
-          </button>
-
-          {result && (
-            <div style={styles.resultBox}>
-              <h3 style={styles.resultTitle}>분석 결과</h3>
-              <p style={styles.resultText}>{result}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 갤러리 탭 */}
-      {activeTab === "gallery" && (
-        <div style={styles.content}>
-          <div style={styles.galleryHeader}>
-            <button onClick={handleTriggerCamera} style={styles.cameraButton}>
-              📷 사진 촬영
+          {/* 탭 메뉴 */}
+          <div style={styles.tabContainer}>
+            <button
+              style={activeTab === "upload" ? styles.tabActive : styles.tab}
+              onClick={() => setActiveTab("upload")}
+            >
+              이미지 분석
             </button>
-            <button onClick={fetchUploadedImages} style={styles.refreshButton}>
-              🔄 새로고침
+            <button
+              style={activeTab === "gallery" ? styles.tabActive : styles.tab}
+              onClick={() => setActiveTab("gallery")}
+            >
+              촬영 갤러리
             </button>
           </div>
 
-          {uploadedImages.length === 0 ? (
-            <p style={styles.emptyText}>업로드된 이미지가 없습니다.</p>
-          ) : (
-            <div style={styles.gallery}>
-              {uploadedImages.map((img, index) => (
-                <div key={index} style={styles.galleryItem}>
+          {/* 이미지 분석 탭 */}
+          {activeTab === "upload" && (
+            <div style={styles.content}>
+              <div style={styles.uploadBox}>
+                <label htmlFor="file-upload" style={styles.uploadLabel}>
+                  📁 이미지 업로드
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={styles.fileInput}
+                />
+              </div>
+
+              {imagePreview && (
+                <div style={styles.previewContainer}>
                   <img
-                    src={img.url}
-                    alt={img.filename}
-                    style={styles.galleryImage}
-                    onClick={() => handleSelectFromGallery(img.url, img.filename)}
+                    src={imagePreview}
+                    alt="preview"
+                    style={styles.previewImage}
                   />
-                  <p style={styles.galleryCaption}>{img.timestamp}</p>
                 </div>
-              ))}
+              )}
+
+              <button
+                onClick={handleAnalyze}
+                style={styles.analyzeButton}
+                disabled={loading}
+              >
+                {loading ? "분석 중..." : "🔍 분석하기"}
+              </button>
+
+              {result && (
+                <div style={styles.resultBox}>
+                  <h3 style={styles.resultTitle}>분석 결과</h3>
+                  <p style={styles.resultText}>{result}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 갤러리 탭 */}
+          {activeTab === "gallery" && (
+            <div style={styles.content}>
+              <div style={styles.galleryHeader}>
+                <button onClick={handleTriggerCamera} style={styles.cameraButton}>
+                  📷 사진 촬영
+                </button>
+                <button onClick={fetchUploadedImages} style={styles.refreshButton}>
+                  🔄 새로고침
+                </button>
+              </div>
+
+              {uploadedImages.length === 0 ? (
+                <p style={styles.emptyText}>업로드된 이미지가 없습니다.</p>
+              ) : (
+                <div style={styles.gallery}>
+                  {uploadedImages.map((img, index) => (
+                    <div key={index} style={styles.galleryItem}>
+                      <img
+                        src={img.url}
+                        alt={img.filename}
+                        style={styles.galleryImage}
+                        onClick={() => handleSelectFromGallery(img.url, img.filename)}
+                      />
+                      <p style={styles.galleryCaption}>{img.timestamp}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {/* 오른쪽: 센서값 박스 */}
+        <div style={styles.sensorBox}>
+          <h3>🌡️ 실시간 센서값</h3>
+          {sensorData ? (
+            <ul style={styles.sensorList}>
+              <li>온도: {sensorData.temperature} °C</li>
+              <li>습도: {sensorData.humidity} %</li>
+              <li>토양 수분: {sensorData.soil_moisture}</li>
+              <li>수위: {sensorData.water_level} %</li>
+              <li>⏱ {sensorData.timestamp}</li>
+            </ul>
+          ) : (
+            <p>데이터 수신 대기중...</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -260,10 +253,36 @@ const styles = {
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",
   },
+  layout: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    gap: "40px",
+  },
+  mainContent: {
+    flex: 1,
+    maxWidth: "700px",
+  },
   title: {
     color: "#2c3e50",
     marginBottom: "30px",
     fontSize: "32px",
+  },
+  sensorBox: {
+    flex: "0 0 250px",
+    padding: "20px",
+    backgroundColor: "#ecf0f1",
+    borderRadius: "10px",
+    textAlign: "left",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+    color: "#2c3e50",
+  },
+  sensorList: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+    fontSize: "15px",
+    color: "#2c3e50",
   },
   tabContainer: {
     display: "flex",
@@ -276,8 +295,8 @@ const styles = {
     fontSize: "16px",
     cursor: "pointer",
     border: "2px solid #3498db",
-    backgroundColor: "#ecf0f1",   // 기본은 연한 회색
-    color: "#3498db",             // 글씨 파란색
+    backgroundColor: "#ecf0f1",
+    color: "#3498db",
     borderRadius: "8px",
     transition: "all 0.3s",
   },
@@ -286,8 +305,8 @@ const styles = {
     fontSize: "16px",
     cursor: "pointer",
     border: "2px solid #3498db",
-    backgroundColor: "#3498db",   // 활성화 → 파란색 배경
-    color: "white",               // 글씨 흰색
+    backgroundColor: "#3498db",
+    color: "white",
     borderRadius: "8px",
     fontWeight: "bold",
   },
@@ -387,7 +406,6 @@ const styles = {
   gallery: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: "20px",
     marginTop: "20px",
     padding: "10px",
@@ -416,38 +434,6 @@ const styles = {
     fontSize: "12px",
     color: "#7f8c8d",
     textAlign: "center",
-  },
-  layout: {
-    display: "flex",
-    gap: "20px",
-    alignItems: "flex-start",
-  },
-  sensorBox: {
-    flex: "0 0 250px",
-    padding: "20px",
-    backgroundColor: "#ecf0f1",
-    borderRadius: "10px",
-    textAlign: "left",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-    color: "#2c3e50",
-  },
-  
-  sensorList: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    fontSize: "15px",
-    color: "#2c3e50",
-  },
-  mainContent: {
-    flex: 1,
-  },
-  headerRow: {
-    display: "flex",
-    alignItems: "center",    // 세로 중앙정렬
-    justifyContent: "center",// 전체 중앙
-    gap: "20px",             // 제목과 센서박스 사이 간격
-    marginBottom: "30px",
   },
 };
 
