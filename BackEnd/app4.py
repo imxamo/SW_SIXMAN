@@ -15,6 +15,7 @@ REACT_DIST = os.path.abspath(os.path.join(BACKEND_DIR, "../FrontEnd/dist"))
 FRONTEND_DIR = os.path.join(BACKEND_DIR, "..", "FrontEnd")
 UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
 DB_PATH = os.path.join(BACKEND_DIR, "cam_server.db")
+SENSOR_DB_PATH = os.path.join(BACKEND_DIR, "sensor_server.db")  # ✅ 센서 전용 DB 추가
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -80,7 +81,12 @@ def init_db():
             timestamp TEXT
         )
     """)
-    # 센서 데이터 테이블 추가
+    conn.commit()
+    conn.close()
+
+def init_sensor_db():
+    conn = sqlite3.connect(SENSOR_DB_PATH)
+    cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS sensor_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,9 +119,9 @@ def insert_upload_log(file_path):
     conn.close()
 
 def insert_sensor_data(temp, hum, soil, water):
-    """센서 데이터를 DB에 저장"""
+    """센서 데이터를 sensor_server.db에 저장"""
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(SENSOR_DB_PATH)
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO sensor_data (temperature, humidity, soil_moisture, water_level, timestamp)
@@ -249,7 +255,7 @@ def upload():
                 latest_sensor_data["water_level"] = water
                 latest_sensor_data["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # DB에 저장
+                # ✅ 센서 전용 DB에 저장
                 insert_sensor_data(temp, hum, soil, water)
 
                 print(f"[ESP32 센서 업로드] 온도:{temp}°C, 습도:{hum}%, 토양:{soil}, 수위:{water}%")
@@ -329,5 +335,6 @@ def api_uploads():
     return jsonify({"ok": True, "uploads": uploads})
 
 if __name__ == "__main__":
-    init_db()
+    init_db()          # 기존 cam_server.db 초기화
+    init_sensor_db()   # ✅ sensor_server.db 초기화
     app.run(host="0.0.0.0", port=15020, debug=False)
