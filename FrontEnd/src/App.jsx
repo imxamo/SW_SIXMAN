@@ -131,24 +131,24 @@ function App() {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
 
-      <div style={styles.layout}>
-        {/* 왼쪽 센서값 영역 */}
-        <div style={styles.sensorBox}>
-          <h3>🌡️ 실시간 센서값</h3>
-          {sensorData ? (
-            <ul style={styles.sensorList}>
-              <li>온도: {sensorData.temperature} °C</li>
-              <li>습도: {sensorData.humidity} %</li>
-              <li>토양 수분: {sensorData.soil_moisture}</li>
-              <li>수위: {sensorData.water_level} %</li>
-              <li>⏱ {sensorData.timestamp}</li>
-            </ul>
-          ) : (
-            <p>데이터 수신 대기중...</p>
-          )}
-        </div>
+      <div style={styles.headerRow}>
+      <div style={styles.sensorBox}>
+        <h3>🌡️ 실시간 센서값</h3>
+        {sensorData ? (
+          <ul style={styles.sensorList}>
+            <li>온도: {sensorData.temperature} °C</li>
+            <li>습도: {sensorData.humidity} %</li>
+            <li>토양 수분: {sensorData.soil_moisture}</li>
+            <li>수위: {sensorData.water_level} %</li>
+            <li>⏱ {sensorData.timestamp}</li>
+          </ul>
+        ) : (
+          <p>데이터 수신 대기중...</p>
+        )}
+      </div>
+        
+      <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
       
         {/* 기존 내용 (오른쪽 분석/갤러리 탭) */}
         <div style={styles.mainContent}>
@@ -422,7 +422,7 @@ const styles = {
     gap: "20px",
     alignItems: "flex-start",
   },
-    sensorBox: {
+  sensorBox: {
     flex: "0 0 250px",
     padding: "20px",
     backgroundColor: "#ecf0f1",
@@ -432,7 +432,7 @@ const styles = {
     color: "#2c3e50",
   },
   
-    sensorList: {
+  sensorList: {
     listStyle: "none",
     padding: 0,
     margin: 0,
@@ -442,7 +442,13 @@ const styles = {
   mainContent: {
     flex: 1,
   },
-
+  headerRow: {
+    display: "flex",
+    alignItems: "center",    // 세로 중앙정렬
+    justifyContent: "center",// 전체 중앙
+    gap: "20px",             // 제목과 센서박스 사이 간격
+    marginBottom: "30px",
+  },
 };
 
 export default App;
