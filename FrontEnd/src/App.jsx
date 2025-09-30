@@ -422,15 +422,17 @@ const styles = {
     gap: "20px",
     alignItems: "flex-start",
   },
-  sensorBox: {
+    sensorBox: {
     flex: "0 0 250px",
     padding: "20px",
     backgroundColor: "#ecf0f1",
     borderRadius: "10px",
     textAlign: "left",
     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+    color: "#2c3e50",
   },
-  sensorList: {
+  
+    sensorList: {
     listStyle: "none",
     padding: 0,
     margin: 0,
