@@ -14,24 +14,24 @@ function App() {
     fetchUploadedImages();
   }, []);
   
-// 센서 데이터 주기적 fetch
-useEffect(() => {
-  const fetchSensor = async () => {
-    try {
-      const response = await fetch("/api/sensor");
-      const data = await response.json();
-      if (data.ok) {
-        setSensorData(data.data);
+  // 센서 데이터 주기적 fetch
+  useEffect(() => {
+    const fetchSensor = async () => {
+      try {
+        const response = await fetch("/api/sensor");
+        const data = await response.json();
+        if (data.ok) {
+          setSensorData(data.data);
+        }
+      } catch (err) {
+        console.error("센서 데이터 불러오기 실패:", err);
       }
-    } catch (err) {
-      console.error("센서 데이터 불러오기 실패:", err);
-    }
-  };
-
-  fetchSensor();
-  const interval = setInterval(fetchSensor, 5000); // 5초마다 갱신
-  return () => clearInterval(interval);
-}, []);
+    };
+  
+    fetchSensor();
+    const interval = setInterval(fetchSensor, 5000); // 5초마다 갱신
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchUploadedImages = async () => {
     try {
