@@ -7,7 +7,7 @@ function App() {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("upload"); // "upload" or "gallery"
-  const [sensorData, setSensorData] = useState(null);Images
+  const [sensorData, setSensorData] = useState(null);
 
   // 업로드된 이미지 목록 가져오기
   useEffect(() => {
@@ -418,28 +418,28 @@ const styles = {
     textAlign: "center",
   },
   layout: {
-  display: "flex",
-  gap: "20px",
-  alignItems: "flex-start",
-},
-sensorBox: {
-  flex: "0 0 250px",
-  padding: "20px",
-  backgroundColor: "#ecf0f1",
-  borderRadius: "10px",
-  textAlign: "left",
-  boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-},
-sensorList: {
-  listStyle: "none",
-  padding: 0,
-  margin: 0,
-  fontSize: "15px",
-  color: "#2c3e50",
-},
-mainContent: {
-  flex: 1,
-},
+    display: "flex",
+    gap: "20px",
+    alignItems: "flex-start",
+  },
+  sensorBox: {
+    flex: "0 0 250px",
+    padding: "20px",
+    backgroundColor: "#ecf0f1",
+    borderRadius: "10px",
+    textAlign: "left",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+  },
+  sensorList: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+    fontSize: "15px",
+    color: "#2c3e50",
+  },
+  mainContent: {
+    flex: 1,
+  },
 
 };
 
