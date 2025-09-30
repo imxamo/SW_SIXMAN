@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./App.css";   // ✅ CSS 파일 가져오기
+import "./App.css";   // CSS 연결
 
 function App() {
   const [image, setImage] = useState(null);
@@ -27,7 +27,7 @@ function App() {
     }
   };
 
-  // 센서 데이터 주기적 fetch
+  // 센서 데이터 fetch
   useEffect(() => {
     const fetchSensor = async () => {
       try {
@@ -108,70 +108,47 @@ function App() {
     }
   };
 
-// 촬영 트리거 (CAM)
-const handleTriggerCamera = async () => {
-  try {
-    const response = await fetch("/trigger/cam");   // ✅ CAM 트리거
-    const data = await response.json();
-    if (data.status === "ok") {
-      alert("카메라 촬영 요청을 보냈습니다!");
-      setTimeout(() => {
-        fetchUploadedImages();
-      }, 3000);
+  // 촬영 트리거
+  const handleTriggerCamera = async () => {
+    try {
+      const response = await fetch("/trigger/cam");
+      const data = await response.json();
+      if (data.status === "ok") {
+        alert("카메라 촬영 요청을 보냈습니다!");
+        setTimeout(() => {
+          fetchUploadedImages();
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("촬영 트리거 실패:", error);
+      alert("카메라 연결에 실패했습니다.");
     }
-  } catch (error) {
-    console.error("촬영 트리거 실패:", error);
-    alert("카메라 연결에 실패했습니다.");
-  }
-};
+  };
 
-// 센서 새로고침 (ESP32)
-const handleTriggerSensor = async () => {
-  try {
-    const response = await fetch("/trigger/esp32");  // ✅ ESP32 트리거
-    const data = await response.json();
-    if (data.status === "ok") {
-      alert("센서 새 데이터 요청을 보냈습니다!");
-      setTimeout(() => {
-        // 센서값 다시 가져오기
-        fetch("/api/sensor")
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.ok) setSensorData(data.data);
-          });
-      }, 3000);
+  // 센서 새로고침
+  const handleTriggerSensor = async () => {
+    try {
+      const response = await fetch("/trigger/esp32");
+      const data = await response.json();
+      if (data.status === "ok") {
+        alert("센서 새 데이터 요청을 보냈습니다!");
+        setTimeout(() => {
+          fetch("/api/sensor")
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.ok) setSensorData(data.data);
+            });
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("센서 트리거 실패:", error);
+      alert("센서 연결에 실패했습니다.");
     }
-  } catch (error) {
-    console.error("센서 트리거 실패:", error);
-    alert("센서 연결에 실패했습니다.");
-  }
-};
-
-
+  };
 
   return (
     <div className="container">
       <div className="layout">
-        {/* 오른쪽: 센서값 */}
-        <div className="sensorBox">
-          <h3>🌡️ 실시간 센서값</h3>
-          {sensorData ? (
-            <ul className="sensorList">
-              <li>온도: {sensorData.temperature} °C</li>
-              <li>습도: {sensorData.humidity} %</li>
-              <li>토양 수분: {sensorData.soil_moisture}</li>
-              <li>수위: {sensorData.water_level} %</li>
-              <li>⏱ {sensorData.timestamp}</li>
-            </ul>
-          ) : (
-            <p>데이터 수신 대기중...</p>
-          )}
-          {/* 센서 새로고침 버튼 */}
-          <button onClick={handleTriggerSensor} className="sensorRefresh">
-            🔄 새로고침
-          </button>
-        </div>
-        
         {/* 왼쪽: AI 분석 */}
         <div className="mainContent">
           <h1 className="title">🌿 상추 질병 AI 분석</h1>
@@ -192,7 +169,7 @@ const handleTriggerSensor = async () => {
             </button>
           </div>
 
-          {/* 이미지 분석 탭 */}
+          {/* 업로드 탭 */}
           {activeTab === "upload" && (
             <div className="content">
               <div className="uploadBox">
@@ -253,7 +230,9 @@ const handleTriggerSensor = async () => {
                         src={img.url}
                         alt={img.filename}
                         className="galleryImage"
-                        onClick={() => handleSelectFromGallery(img.url, img.filename)}
+                        onClick={() =>
+                          handleSelectFromGallery(img.url, img.filename)
+                        }
                       />
                       <p className="galleryCaption">{img.timestamp}</p>
                     </div>
@@ -263,9 +242,33 @@ const handleTriggerSensor = async () => {
             </div>
           )}
         </div>
+
+        {/* 오른쪽: 센서값 */}
+        <div className="sensorBox">
+          <h3>🌡️ 실시간 센서값</h3>
+          {sensorData ? (
+            <ul className="sensorList">
+              <li>온도: {sensorData.temperature} °C</li>
+              <li>습도: {sensorData.humidity} %</li>
+              <li>토양 수분: {sensorData.soil_moisture}</li>
+              <li>수위: {sensorData.water_level} %</li>
+              <li>⏱ {sensorData.timestamp}</li>
+            </ul>
+          ) : (
+            <p>데이터 수신 대기중...</p>
+          )}
+
+          <button onClick={handleTriggerSensor} className="sensorRefresh">
+            🔄 새로고침
+          </button>
+        </div>
       </div>
     </div>
   );
+}
+
+export default App;
+
 }
 
 export default App;
