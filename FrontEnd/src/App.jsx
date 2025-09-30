@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "./App.css";   // ✅ CSS 파일 가져오기
 
 function App() {
   const [image, setImage] = useState(null);
@@ -6,7 +7,7 @@ function App() {
   const [result, setResult] = useState("");
   const [uploadedImages, setUploadedImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("upload"); // "upload" or "gallery"
+  const [activeTab, setActiveTab] = useState("upload");
   const [sensorData, setSensorData] = useState(null);
 
   // 업로드된 이미지 목록 가져오기
@@ -41,11 +42,11 @@ function App() {
     };
 
     fetchSensor();
-    const interval = setInterval(fetchSensor, 5000); // 5초마다 갱신
+    const interval = setInterval(fetchSensor, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // 파일 선택 (직접 업로드)
+  // 파일 선택
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -58,12 +59,12 @@ function App() {
   // 갤러리에서 이미지 선택
   const handleSelectFromGallery = (imageUrl, filename) => {
     setImagePreview(imageUrl);
-    setImage({ url: imageUrl, filename }); // URL 기반 이미지로 설정
+    setImage({ url: imageUrl, filename });
     setResult("");
-    setActiveTab("upload"); // 분석 탭으로 전환
+    setActiveTab("upload");
   };
 
-  // 분석 버튼 클릭
+  // 분석 버튼
   const handleAnalyze = async () => {
     if (!image) {
       alert("이미지를 먼저 업로드하거나 선택해주세요!");
@@ -107,7 +108,7 @@ function App() {
     }
   };
 
-  // 사진 촬영 트리거
+  // 촬영 트리거
   const handleTriggerCamera = async () => {
     try {
       const response = await fetch("/trigger");
@@ -125,22 +126,22 @@ function App() {
   };
 
   return (
-    <div style={styles.container}>
+    <div className="container">
       <div className="layout">
-        {/* 왼쪽: 기존 메인 콘텐츠 */}
+        {/* 왼쪽: AI 분석 */}
         <div className="mainContent">
-          <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
+          <h1 className="title">🌿 상추 질병 AI 분석</h1>
 
-          {/* 탭 메뉴 */}
-          <div style={styles.tabContainer}>
+          {/* 탭 */}
+          <div className="tabContainer">
             <button
-              style={activeTab === "upload" ? styles.tabActive : styles.tab}
+              className={activeTab === "upload" ? "tabActive" : "tab"}
               onClick={() => setActiveTab("upload")}
             >
               이미지 분석
             </button>
             <button
-              style={activeTab === "gallery" ? styles.tabActive : styles.tab}
+              className={activeTab === "gallery" ? "tabActive" : "tab"}
               onClick={() => setActiveTab("gallery")}
             >
               촬영 갤러리
@@ -149,9 +150,9 @@ function App() {
 
           {/* 이미지 분석 탭 */}
           {activeTab === "upload" && (
-            <div style={styles.content}>
-              <div style={styles.uploadBox}>
-                <label htmlFor="file-upload" style={styles.uploadLabel}>
+            <div className="content">
+              <div className="uploadBox">
+                <label htmlFor="file-upload" className="uploadLabel">
                   📁 이미지 업로드
                 </label>
                 <input
@@ -159,32 +160,28 @@ function App() {
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  style={styles.fileInput}
+                  className="fileInput"
                 />
               </div>
 
               {imagePreview && (
-                <div style={styles.previewContainer}>
-                  <img
-                    src={imagePreview}
-                    alt="preview"
-                    style={styles.previewImage}
-                  />
+                <div className="previewContainer">
+                  <img src={imagePreview} alt="preview" className="previewImage" />
                 </div>
               )}
 
               <button
                 onClick={handleAnalyze}
-                style={styles.analyzeButton}
+                className="analyzeButton"
                 disabled={loading}
               >
                 {loading ? "분석 중..." : "🔍 분석하기"}
               </button>
 
               {result && (
-                <div style={styles.resultBox}>
-                  <h3 style={styles.resultTitle}>분석 결과</h3>
-                  <p style={styles.resultText}>{result}</p>
+                <div className="resultBox">
+                  <h3 className="resultTitle">분석 결과</h3>
+                  <p className="resultText">{result}</p>
                 </div>
               )}
             </div>
@@ -192,29 +189,29 @@ function App() {
 
           {/* 갤러리 탭 */}
           {activeTab === "gallery" && (
-            <div style={styles.content}>
-              <div style={styles.galleryHeader}>
-                <button onClick={handleTriggerCamera} style={styles.cameraButton}>
+            <div className="content">
+              <div className="galleryHeader">
+                <button onClick={handleTriggerCamera} className="cameraButton">
                   📷 사진 촬영
                 </button>
-                <button onClick={fetchUploadedImages} style={styles.refreshButton}>
+                <button onClick={fetchUploadedImages} className="refreshButton">
                   🔄 새로고침
                 </button>
               </div>
 
               {uploadedImages.length === 0 ? (
-                <p style={styles.emptyText}>업로드된 이미지가 없습니다.</p>
+                <p className="emptyText">업로드된 이미지가 없습니다.</p>
               ) : (
-                <div style={styles.gallery}>
+                <div className="gallery">
                   {uploadedImages.map((img, index) => (
-                    <div key={index} style={styles.galleryItem}>
+                    <div key={index} className="galleryItem">
                       <img
                         src={img.url}
                         alt={img.filename}
-                        style={styles.galleryImage}
+                        className="galleryImage"
                         onClick={() => handleSelectFromGallery(img.url, img.filename)}
                       />
-                      <p style={styles.galleryCaption}>{img.timestamp}</p>
+                      <p className="galleryCaption">{img.timestamp}</p>
                     </div>
                   ))}
                 </div>
@@ -223,11 +220,11 @@ function App() {
           )}
         </div>
 
-        {/* 오른쪽: 센서값 박스 */}
+        {/* 오른쪽: 센서값 */}
         <div className="sensorBox">
           <h3>🌡️ 실시간 센서값</h3>
           {sensorData ? (
-            <ul style={styles.sensorList}>
+            <ul className="sensorList">
               <li>온도: {sensorData.temperature} °C</li>
               <li>습도: {sensorData.humidity} %</li>
               <li>토양 수분: {sensorData.soil_moisture}</li>
@@ -242,203 +239,5 @@ function App() {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    textAlign: "center",
-    padding: "30px 20px",
-    fontFamily: "'Segoe UI', Arial, sans-serif",
-    maxWidth: "1400px",
-    margin: "0 auto",
-    backgroundColor: "#f5f7fa",
-    minHeight: "100vh",
-  },
-layout: {
-  display: "flex",
-  justifyContent: "center", // 전체 중앙 정렬
-  alignItems: "flex-start",
-  gap: "40px",
-  width: "100%",
-},
-
-
-  mainContent: {
-    Width: "800px",
-    flexShrink: 0,
-  },
-  title: {
-    color: "#2c3e50",
-    marginBottom: "30px",
-    fontSize: "32px",
-  },
-  sensorBox: {
-    flex: "0 0 250px",
-    padding: "20px",
-    backgroundColor: "#ecf0f1",
-    borderRadius: "10px",
-    textAlign: "left",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-    color: "#2c3e50",
-    flexShrink: 0,
-  },
-  sensorList: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    fontSize: "15px",
-    color: "#2c3e50",
-  },
-  tabContainer: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "10px",
-    marginBottom: "30px",
-  },
-  tab: {
-    padding: "12px 30px",
-    fontSize: "16px",
-    cursor: "pointer",
-    border: "2px solid #3498db",
-    backgroundColor: "#ecf0f1",
-    color: "#3498db",
-    borderRadius: "8px",
-    transition: "all 0.3s",
-  },
-  tabActive: {
-    padding: "12px 30px",
-    fontSize: "16px",
-    cursor: "pointer",
-    border: "2px solid #3498db",
-    backgroundColor: "#3498db",
-    color: "white",
-    borderRadius: "8px",
-    fontWeight: "bold",
-  },
-  content: {
-    backgroundColor: "white",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-  },
-  uploadBox: {
-    marginBottom: "20px",
-  },
-  uploadLabel: {
-    display: "inline-block",
-    padding: "12px 24px",
-    backgroundColor: "#3498db",
-    color: "white",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "16px",
-    transition: "background-color 0.3s",
-  },
-  fileInput: {
-    display: "none",
-  },
-  previewContainer: {
-    margin: "20px 0",
-  },
-  previewImage: {
-    maxWidth: "400px",
-    maxHeight: "400px",
-    borderRadius: "8px",
-    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-  },
-  analyzeButton: {
-    padding: "14px 40px",
-    marginTop: "20px",
-    fontSize: "18px",
-    cursor: "pointer",
-    backgroundColor: "#27ae60",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    fontWeight: "bold",
-    transition: "background-color 0.3s",
-  },
-  resultBox: {
-    marginTop: "30px",
-    padding: "20px",
-    border: "2px solid #27ae60",
-    borderRadius: "8px",
-    backgroundColor: "#e8f5e9",
-    display: "inline-block",
-    textAlign: "left",
-    minWidth: "300px",
-  },
-  resultTitle: {
-    color: "#27ae60",
-    marginBottom: "10px",
-  },
-  resultText: {
-    fontSize: "18px",
-    color: "#2c3e50",
-    fontWeight: "bold",
-  },
-  galleryHeader: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "10px",
-    marginBottom: "20px",
-  },
-  cameraButton: {
-    padding: "12px 24px",
-    fontSize: "16px",
-    cursor: "pointer",
-    backgroundColor: "#e74c3c",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    fontWeight: "bold",
-  },
-  refreshButton: {
-    padding: "12px 24px",
-    fontSize: "16px",
-    cursor: "pointer",
-    backgroundColor: "#95a5a6",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    fontWeight: "bold",
-  },
-  emptyText: {
-    color: "#7f8c8d",
-    fontSize: "16px",
-    padding: "40px",
-  },
-  gallery: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-    gap: "20px",
-    marginTop: "20px",
-    padding: "10px",
-    justifyItems: "center",
-  },
-  galleryItem: {
-    cursor: "pointer",
-    transition: "transform 0.2s",
-    border: "2px solid #ecf0f1",
-    borderRadius: "8px",
-    padding: "10px",
-    backgroundColor: "#fafafa",
-    overflow: "hidden",
-    width: "100%",
-    maxWidth: "300px",
-  },
-  galleryImage: {
-    width: "100%",
-    height: "200px",
-    objectFit: "cover",
-    borderRadius: "6px",
-    display: "block",
-  },
-  galleryCaption: {
-    marginTop: "8px",
-    fontSize: "12px",
-    color: "#7f8c8d",
-    textAlign: "center",
-  },
-};
 
 export default App;
