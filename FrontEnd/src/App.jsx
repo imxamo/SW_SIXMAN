@@ -234,6 +234,12 @@ function App() {
           ) : (
             <p>데이터 수신 대기중...</p>
           )}
+
+          {/* 새로고침 버튼 */}
+          <button onClick={() => window.location.reload()} className="sensorRefresh">
+            🔄 새로고침
+          </button>
+          
         </div>
       </div>
     </div>
