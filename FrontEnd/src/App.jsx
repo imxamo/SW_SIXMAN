@@ -260,8 +260,7 @@ const styles = {
     gap: "40px",
   },
   mainContent: {
-    flex: 1,
-    maxWidth: "700px",
+    Width: "800px",
   },
   title: {
     color: "#2c3e50",
