@@ -39,6 +39,8 @@
 // ===== Wi-Fi 설정 =====
 const char* ssid = "JJY_WIFI";       // 와이파이 SSID
 const char* password = "62935701";   // 와이파이 비밀번호
+const char* serverUrl  = "http://116.124.191.174:15020/get";     // GET 폴링
+const char* uploadUrl  = "http://116.124.191.174:15020/upload";  // POST 업로드
 // ★
 
 struct tm ntime;
@@ -52,6 +54,32 @@ int pumpDelay, beepDelay;
 int airTemp, airMoist, soilMoist, waterLevel;
 float waterLevelPercent;
 int edge_hour, edge_minute;
+
+// 센서 데이터 보내는 함수
+void sendSensorData() {
+    // === sensor.txt 문자열 만들기 ===
+    String sensorData = "";
+    sensorData += "온도: " + String(airTemp) + " C\n";
+    sensorData += "습도: " + String(airMoist) + " %\n";
+    sensorData += "토양습도: " + String(soilMoist) + "\n";
+    sensorData += "물수위: " + String(waterLevelPercent) + " %\n";
+
+    Serial.println("전송할 데이터:\n" + sensorData);
+
+    // === 서버로 POST 전송 ===
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(uploadUrl);   // ✅ 업로드 전용 주소
+        http.addHeader("Content-Type", "text/plain"); // sensor.txt 형식
+        int httpCode = http.POST(sensorData);
+        if (httpCode > 0) {
+            Serial.printf("POST 응답: %d\n", httpCode);
+        } else {
+            Serial.printf("POST 실패: %s\n", http.errorToString(httpCode).c_str());
+        }
+        http.end();
+    }
+}
 
 void pump_active(float time){
 	ledcWrite(PUMP_ENA, 255);
@@ -136,9 +164,9 @@ void loop(){
 
     // 매일 0시
 	if (ntime.tm_hour != edge_hour && ntime.tm_hour == 0) {
-	 waterRemain = Water_Day_Limit;
+		waterRemain = Water_Day_Limit;
 	}
-
+	// 수정 요망 30분에서 오차가 추가되어야함
 	if (ntime.tm_min != edge_minute && ntime.tm_min % 30 == 0) { // 30분마다
 		// --- DHT11 온습도 ---
   		float h = dht.readHumidity();
@@ -165,12 +193,14 @@ void loop(){
 		Serial.println(waterLevelPercent);
 		Serial.print("%)");
 
-		// 5. 센서 값을 서버로 전송
-
 		pumpDelay++;
 		beepDelay++;
 	}
 
+	if (ntime.tm_hour != edge_hour) { // 1시간 마다 센서 전송
+		// ★ 센서 값을 서버로 전송
+		sendSensorData();
+	}
 
 	if(waterLevelPercent < Water_Level_Danger){
 		pump();
@@ -209,25 +239,9 @@ void loop(){
         String payload = http.getString();
         payload.trim();
         Serial.println("응답 도착 : " + payload);
-
-        if (payload == "200") {
-            /*
-            // 서버 폴링
-            httpCode = http.GET();
-            if (httpCode > 0) {
-                String body = http.getString();
-                body.trim();
-                if (body == "200") {
-                    Serial.println("응답 도착 : " + body);
-                } else if (body == "201") {
-                    Serial.println("응답 도착 : " + body);
-                    if (imageSend() == 1) break;
-                }
-            } else {
-                Serial.printf("연결 실패 : %s\n", http.errorToString(httpCode).c_str());
-                break;
-            }
-            */
+        if (payload == "201") {
+                // 즉시 센서값 전송
+                sendSensorData();
         }
     } else {
         Serial.printf("연결 실패 : %s\n", http.errorToString(httpCode).c_str());
