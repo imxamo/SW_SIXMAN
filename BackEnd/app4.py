@@ -46,8 +46,11 @@ state = torch.load(MODEL_PATH, map_location=device)
 model.load_state_dict(state)
 model.eval().to(device)
 
-# ===== ESP32-CAM 전역 flag =====
-trigger_flag = {"pending": False}
+# ===== 전역 flag =====
+flags = {
+    "cam_pending": False,
+    "esp32_pending": False
+}
 
 # ===== 센서 데이터 저장 (메모리) =====
 latest_sensor_data = {
@@ -174,81 +177,96 @@ def predict():
 # ===== ESP32: GET 폴링 =====
 @app.get("/get")
 def get_poll():
-    device_id = request.args.get("id", "ESP32-UNKNOWN")
+    device_id = request.args.get("id", "UNKNOWN")
     insert_device_log(device_id, "Online")
 
-    if trigger_flag["pending"]:
-        trigger_flag["pending"] = False
-        return Response("201", mimetype="text/plain")
-    else:
+    if device_id.startswith("ESP32CAM"):
+        if flags["cam_pending"]:
+            flags["cam_pending"] = False
+            return Response("201", mimetype="text/plain")
         return Response("200", mimetype="text/plain")
 
-# ===== ESP32: 센서 데이터 업로드 =====
+    elif device_id.startswith("ESP32"):
+        if flags["esp32_pending"]:
+            flags["esp32_pending"] = False
+            return Response("201", mimetype="text/plain")
+        return Response("200", mimetype="text/plain")
+
+    return Response("400", mimetype="text/plain")  # 알 수 없는 장치
+
+# ===== ESP32 / ESP32-CAM: 업로드 처리 =====
 @app.post("/upload")
 def upload():
-    """ESP32에서 센서 데이터 또는 이미지 업로드"""
+    device_id = request.args.get("id", "UNKNOWN")   # ?id=ESP32CAM-123 또는 ?id=ESP32-123
     ct = request.content_type or ""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     saved_path = None
 
     try:
-        if ct.startswith("text/plain"):
+        # ==============================
+        # 1. ESP32-CAM (사진 업로드)
+        # ==============================
+        if device_id.startswith("ESP32CAM"):
+            # raw binary (application/octet-stream) 또는 multipart/form-data 가능
+            if "multipart/form-data" in ct:
+                if "file" not in request.files:
+                    return jsonify({"status": "fail", "error": "form field 'file' not found"}), 400
+                file_storage = request.files["file"]
+                ext = os.path.splitext(file_storage.filename or "")[1] or ".jpg"
+                saved_path = os.path.join(UPLOAD_DIR, f"CAM_{timestamp}{ext}")
+                file_storage.save(saved_path)
+            else:
+                # 기본적으로 raw binary 데이터를 jpg로 저장
+                data = request.get_data()
+                saved_path = os.path.join(UPLOAD_DIR, f"CAM_{timestamp}.jpg")
+                with open(saved_path, "wb") as f:
+                    f.write(data)
+
+            insert_upload_log(saved_path)
+            print(f"[CAM 업로드] {saved_path}")
+
+        # ==============================
+        # 2. ESP32 (센서 데이터 업로드)
+        # ==============================
+        elif device_id.startswith("ESP32"):
             body = request.get_data(as_text=True)
-            
-            # 센서 데이터 파싱 (sensor.txt 형식)
-            if "온도:" in body and "습도:" in body:
-                lines = body.strip().split('\n')
-                try:
-                    temp = float(lines[0].split(':')[1].strip().replace('C', '').strip())
-                    hum = float(lines[1].split(':')[1].strip().replace('%', '').strip())
-                    soil = int(lines[2].split(':')[1].strip())
-                    water = float(lines[3].split(':')[1].strip().replace('%', '').strip())
-                    
-                    # 전역 변수 업데이트
-                    latest_sensor_data["temperature"] = temp
-                    latest_sensor_data["humidity"] = hum
-                    latest_sensor_data["soil_moisture"] = soil
-                    latest_sensor_data["water_level"] = water
-                    latest_sensor_data["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    
-                    # DB에 저장
-                    insert_sensor_data(temp, hum, soil, water)
-                    
-                    print(f"[센서 데이터 수신] 온도:{temp}°C, 습도:{hum}%, 토양:{soil}, 수위:{water}%")
-                except Exception as e:
-                    print(f"센서 데이터 파싱 오류: {e}")
-            
-            # 텍스트 파일로도 저장
-            saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}_sensor.txt")
+            saved_path = os.path.join(UPLOAD_DIR, f"ESP32_{timestamp}_sensor.txt")
             with open(saved_path, "w", encoding="utf-8") as f:
                 f.write(body)
 
-        elif "multipart/form-data" in ct:
-            if "file" not in request.files:
-                return jsonify({"error": "form field 'file' not found"}), 400
-            file_storage = request.files["file"]
-            ext = os.path.splitext(file_storage.filename or "")[1] or ".bin"
-            saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}{ext}")
-            file_storage.save(saved_path)
-            insert_upload_log(saved_path)
+            # (옵션) 센서 데이터 파싱
+            try:
+                lines = body.strip().split("\n")
+                temp = float(lines[0].split(":")[1].strip().replace("C", "").strip())
+                hum = float(lines[1].split(":")[1].strip().replace("%", "").strip())
+                soil = int(lines[2].split(":")[1].strip())
+                water = float(lines[3].split(":")[1].strip().replace("%", "").strip())
 
-        elif ct.startswith("application/octet-stream"):
-            data = request.get_data()
-            saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}.jpg")
-            with open(saved_path, "wb") as f:
-                f.write(data)
-            insert_upload_log(saved_path)
+                # 최신 센서값 메모리에 저장
+                latest_sensor_data["temperature"] = temp
+                latest_sensor_data["humidity"] = hum
+                latest_sensor_data["soil_moisture"] = soil
+                latest_sensor_data["water_level"] = water
+                latest_sensor_data["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+                # DB에 저장
+                insert_sensor_data(temp, hum, soil, water)
+
+                print(f"[ESP32 센서 업로드] 온도:{temp}°C, 습도:{hum}%, 토양:{soil}, 수위:{water}%")
+            except Exception as e:
+                print(f"[ESP32 센서 파싱 오류] {e}")
+
+        # ==============================
+        # 3. 알 수 없는 장치
+        # ==============================
         else:
-            data = request.get_data()
-            saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}.dat")
-            with open(saved_path, "wb") as f:
-                f.write(data)
+            return jsonify({"status": "fail", "error": "unknown device"}), 400
 
         return jsonify({"status": "ok", "saved": os.path.basename(saved_path) if saved_path else "sensor_data"}), 200
 
     except Exception as e:
         return jsonify({"status": "fail", "error": str(e)}), 500
+
 
 # ===== API: 최신 센서 데이터 조회 =====
 @app.get("/api/sensor")
@@ -265,11 +283,15 @@ def plant_level():
     """ESP32에서 식물 생장 단계를 요청하면 반환 (임시로 300 반환)"""
     return Response("300", mimetype="text/plain")
 
-# ===== 프론트: 촬영 트리거 =====
-@app.get("/trigger")
-def trigger():
-    trigger_flag["pending"] = True
+@app.get("/trigger/cam")
+def trigger_cam():
+    flags["cam_pending"] = True
     return jsonify({"status": "ok", "message": "다음 GET 시 CAM에 201 반환 예정"})
+
+@app.get("/trigger/esp32")
+def trigger_esp32():
+    flags["esp32_pending"] = True
+    return jsonify({"status": "ok", "message": "다음 GET 시 ESP32에 201 반환 예정"})
 
 # ===== 프론트: 갤러리 페이지 =====
 @app.get("/gallery")
