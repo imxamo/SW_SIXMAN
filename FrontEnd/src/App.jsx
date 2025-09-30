@@ -7,11 +7,31 @@ function App() {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("upload"); // "upload" or "gallery"
+  const [sensorData, setSensorData] = useState(null);Images
 
   // 업로드된 이미지 목록 가져오기
   useEffect(() => {
     fetchUploadedImages();
   }, []);
+  
+// 센서 데이터 주기적 fetch
+useEffect(() => {
+  const fetchSensor = async () => {
+    try {
+      const response = await fetch("/api/sensor");
+      const data = await response.json();
+      if (data.ok) {
+        setSensorData(data.data);
+      }
+    } catch (err) {
+      console.error("센서 데이터 불러오기 실패:", err);
+    }
+  };
+
+  fetchSensor();
+  const interval = setInterval(fetchSensor, 5000); // 5초마다 갱신
+  return () => clearInterval(interval);
+}, []);
 
   const fetchUploadedImages = async () => {
     try {
@@ -112,6 +132,29 @@ function App() {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
+
+      <div style={styles.layout}>
+        {/* 왼쪽 센서값 영역 */}
+        <div style={styles.sensorBox}>
+          <h3>🌡️ 실시간 센서값</h3>
+          {sensorData ? (
+            <ul style={styles.sensorList}>
+              <li>온도: {sensorData.temperature} °C</li>
+              <li>습도: {sensorData.humidity} %</li>
+              <li>토양 수분: {sensorData.soil_moisture}</li>
+              <li>수위: {sensorData.water_level} %</li>
+              <li>⏱ {sensorData.timestamp}</li>
+            </ul>
+          ) : (
+            <p>데이터 수신 대기중...</p>
+          )}
+        </div>
+      
+        {/* 기존 내용 (오른쪽 분석/갤러리 탭) */}
+        <div style={styles.mainContent}>
+          {/* 기존의 탭/이미지 분석/갤러리 코드 */}
+        </div>
+      </div>
 
       {/* 탭 메뉴 */}
       <div style={styles.tabContainer}>
@@ -374,6 +417,30 @@ const styles = {
     color: "#7f8c8d",
     textAlign: "center",
   },
+  layout: {
+  display: "flex",
+  gap: "20px",
+  alignItems: "flex-start",
+},
+sensorBox: {
+  flex: "0 0 250px",
+  padding: "20px",
+  backgroundColor: "#ecf0f1",
+  borderRadius: "10px",
+  textAlign: "left",
+  boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+},
+sensorList: {
+  listStyle: "none",
+  padding: 0,
+  margin: 0,
+  fontSize: "15px",
+  color: "#2c3e50",
+},
+mainContent: {
+  flex: 1,
+},
+
 };
 
 export default App;
