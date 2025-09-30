@@ -152,6 +152,26 @@ const handleTriggerSensor = async () => {
   return (
     <div className="container">
       <div className="layout">
+        {/* 오른쪽: 센서값 */}
+        <div className="sensorBox">
+          <h3>🌡️ 실시간 센서값</h3>
+          {sensorData ? (
+            <ul className="sensorList">
+              <li>온도: {sensorData.temperature} °C</li>
+              <li>습도: {sensorData.humidity} %</li>
+              <li>토양 수분: {sensorData.soil_moisture}</li>
+              <li>수위: {sensorData.water_level} %</li>
+              <li>⏱ {sensorData.timestamp}</li>
+            </ul>
+          ) : (
+            <p>데이터 수신 대기중...</p>
+          )}
+          {/* 센서 새로고침 버튼 */}
+          <button onClick={handleTriggerSensor} className="sensorRefresh">
+            🔄 새로고침
+          </button>
+        </div>
+        
         {/* 왼쪽: AI 분석 */}
         <div className="mainContent">
           <h1 className="title">🌿 상추 질병 AI 분석</h1>
@@ -242,28 +262,6 @@ const handleTriggerSensor = async () => {
               )}
             </div>
           )}
-        </div>
-
-        {/* 오른쪽: 센서값 */}
-        <div className="sensorBox">
-          <h3>🌡️ 실시간 센서값</h3>
-          {sensorData ? (
-            <ul className="sensorList">
-              <li>온도: {sensorData.temperature} °C</li>
-              <li>습도: {sensorData.humidity} %</li>
-              <li>토양 수분: {sensorData.soil_moisture}</li>
-              <li>수위: {sensorData.water_level} %</li>
-              <li>⏱ {sensorData.timestamp}</li>
-            </ul>
-          ) : (
-            <p>데이터 수신 대기중...</p>
-          )}
-          {/* 센서 새로고침 버튼 */}
-          <button onClick={handleTriggerSensor} className="sensorRefresh">
-            🔄 새로고침
-          </button>
-
-          
         </div>
       </div>
     </div>
