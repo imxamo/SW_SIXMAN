@@ -41,6 +41,7 @@ const char* ssid = "JJY_WIFI";       // 와이파이 SSID
 const char* password = "62935701";   // 와이파이 비밀번호
 const char* serverUrl  = "http://116.124.191.174:15020/get";     // GET 폴링
 const char* uploadUrl  = "http://116.124.191.174:15020/upload";  // POST 업로드
+const char* levelUrl  = "http://116.124.191.174:15020/level";	// 식물 생장 단계를 응답바람
 // ★
 
 struct tm ntime;
@@ -54,6 +55,9 @@ int pumpDelay, beepDelay;
 int airTemp, airMoist, soilMoist, waterLevel;
 float waterLevelPercent;
 int edge_hour, edge_minute;
+
+// ★
+int plantLevel = 0;
 
 // 센서 데이터 보내는 함수
 void sendSensorData() {
@@ -76,6 +80,28 @@ void sendSensorData() {
             Serial.printf("POST 응답: %d\n", httpCode);
         } else {
             Serial.printf("POST 실패: %s\n", http.errorToString(httpCode).c_str());
+        }
+        http.end();
+    }
+}
+
+void getPlantLevel() {
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(levelUrl);   
+        http.setTimeout(TIMEOUT * 1000);
+
+        int httpCode = http.GET();   // POST가 아니라 GET 요청일 가능성이 높음
+        if (httpCode > 0) {
+            String payload = http.getString();
+            payload.trim();
+            Serial.printf("응답: %s\n", payload.c_str());
+
+            plantLevel = payload.toInt();
+			plantLevel -= 300;
+            Serial.printf("plantLevel = %d\n", plantLevel);
+        } else {
+            Serial.printf("통신 실패: %s\n", http.errorToString(httpCode).c_str());
         }
         http.end();
     }
@@ -155,6 +181,8 @@ void setup() {
 	edge_hour = 61; //0~60분 범위 밖의 값을 사용
     edge_minute = 61;
 
+	//★
+	getPlantLevel();
     wifi_connect();
 }
 
@@ -162,10 +190,12 @@ void loop(){
 	// 4. 시간 작동되는 지 테스트
 	getLocalTime(&ntime);
 
-    // 매일 0시
+    // ★ 매일 0시
 	if (ntime.tm_hour != edge_hour && ntime.tm_hour == 0) {
 		waterRemain = Water_Day_Limit;
+		
 	}
+
 	// 수정 요망 30분에서 오차가 추가되어야함
 	if (ntime.tm_min != edge_minute && ntime.tm_min % 30 == 0) { // 30분마다
 		// --- DHT11 온습도 ---
