@@ -258,6 +258,7 @@ const styles = {
     gridTemplateColumns: "800px 250px",
     justifyContent: "center",
     gap: "40px",
+    width: "100%",
   },
   mainContent: {
     Width: "800px",
