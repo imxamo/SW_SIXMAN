@@ -126,9 +126,9 @@ function App() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.layout}>
+      <div className="layout">
         {/* 왼쪽: 기존 메인 콘텐츠 */}
-        <div style={styles.mainContent}>
+        <div className="mainContent">
           <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
 
           {/* 탭 메뉴 */}
@@ -224,7 +224,7 @@ function App() {
         </div>
 
         {/* 오른쪽: 센서값 박스 */}
-        <div style={styles.sensorBox}>
+        <div className="sensorBox">
           <h3>🌡️ 실시간 센서값</h3>
           {sensorData ? (
             <ul style={styles.sensorList}>
