@@ -232,8 +232,9 @@ const styles = {
     padding: "12px 30px",
     fontSize: "16px",
     cursor: "pointer",
-    border: "2px solid #ddd",
-    backgroundColor: "white",
+    border: "2px solid #3498db",
+    backgroundColor: "#ecf0f1",   // 기본은 연한 회색
+    color: "#3498db",             // 글씨 파란색
     borderRadius: "8px",
     transition: "all 0.3s",
   },
@@ -242,8 +243,8 @@ const styles = {
     fontSize: "16px",
     cursor: "pointer",
     border: "2px solid #3498db",
-    backgroundColor: "#3498db",
-    color: "white",
+    backgroundColor: "#3498db",   // 활성화 → 파란색 배경
+    color: "white",               // 글씨 흰색
     borderRadius: "8px",
     fontWeight: "bold",
   },
