@@ -254,12 +254,13 @@ const styles = {
     minHeight: "100vh",
   },
   layout: {
-    display: "grid",
-    gridTemplateColumns: "800px 250px",
-    justifyContent: "center",
-    gap: "40px",
-    width: "100%",
-  },
+  display: "grid",
+  gridTemplateColumns: "800px 250px",
+  gap: "40px",
+  margin: "0 auto",         // 전체를 가운데로
+  width: "fit-content",     // 그리드 크기만큼만 차지
+},
+
   mainContent: {
     Width: "800px",
     flexShrink: 0,
