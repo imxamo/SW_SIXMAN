@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "./App.css";   // CSS 연결
 
 function App() {
   const [image, setImage] = useState(null);
@@ -144,25 +143,43 @@ function App() {
       console.error("센서 트리거 실패:", error);
       alert("센서 연결에 실패했습니다.");
     }
-  };
+  }; // ← 이 중괄호가 빠져있었습니다!
 
   return (
-    <div className="container">
-      <div className="layout">
+    <div className="container" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
+      <div className="layout" style={{ display: 'flex', gap: '20px' }}>
         {/* 왼쪽: AI 분석 */}
-        <div className="mainContent">
-          <h1 className="title">🌿 상추 질병 AI 분석</h1>
+        <div className="mainContent" style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <h1 style={{ fontSize: '28px', marginBottom: '24px', color: '#2d3748' }}>🌿 상추 질병 AI 분석</h1>
 
           {/* 탭 */}
-          <div className="tabContainer">
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
             <button
-              className={activeTab === "upload" ? "tabActive" : "tab"}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                backgroundColor: activeTab === "upload" ? '#48bb78' : 'transparent',
+                color: activeTab === "upload" ? 'white' : '#718096',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
               onClick={() => setActiveTab("upload")}
             >
               이미지 분석
             </button>
             <button
-              className={activeTab === "gallery" ? "tabActive" : "tab"}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                backgroundColor: activeTab === "gallery" ? '#48bb78' : 'transparent',
+                color: activeTab === "gallery" ? 'white' : '#718096',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
               onClick={() => setActiveTab("gallery")}
             >
               촬영 갤러리
@@ -171,9 +188,17 @@ function App() {
 
           {/* 업로드 탭 */}
           {activeTab === "upload" && (
-            <div className="content">
-              <div className="uploadBox">
-                <label htmlFor="file-upload" className="uploadLabel">
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="file-upload" style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  backgroundColor: '#4299e1',
+                  color: 'white',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}>
                   📁 이미지 업로드
                 </label>
                 <input
@@ -181,28 +206,39 @@ function App() {
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="fileInput"
+                  style={{ display: 'none' }}
                 />
               </div>
 
               {imagePreview && (
-                <div className="previewContainer">
-                  <img src={imagePreview} alt="preview" className="previewImage" />
+                <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+                  <img src={imagePreview} alt="preview" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                 </div>
               )}
 
               <button
                 onClick={handleAnalyze}
-                className="analyzeButton"
                 disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  backgroundColor: loading ? '#cbd5e0' : '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  marginBottom: '20px'
+                }}
               >
                 {loading ? "분석 중..." : "🔍 분석하기"}
               </button>
 
               {result && (
-                <div className="resultBox">
-                  <h3 className="resultTitle">분석 결과</h3>
-                  <p className="resultText">{result}</p>
+                <div style={{ padding: '20px', backgroundColor: '#f0fff4', borderRadius: '8px', border: '2px solid #48bb78' }}>
+                  <h3 style={{ marginBottom: '12px', color: '#2f855a', fontSize: '20px' }}>분석 결과</h3>
+                  <p style={{ fontSize: '18px', color: '#2d3748', fontWeight: '600' }}>{result}</p>
                 </div>
               )}
             </div>
@@ -210,31 +246,45 @@ function App() {
 
           {/* 갤러리 탭 */}
           {activeTab === "gallery" && (
-            <div className="content">
-              <div className="galleryHeader">
-                <button onClick={handleTriggerCamera} className="cameraButton">
+            <div>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                <button onClick={handleTriggerCamera} style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#805ad5',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}>
                   📷 사진 촬영
                 </button>
-                <button onClick={fetchUploadedImages} className="refreshButton">
+                <button onClick={fetchUploadedImages} style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#4299e1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}>
                   🔄 새로고침
                 </button>
               </div>
 
               {uploadedImages.length === 0 ? (
-                <p className="emptyText">업로드된 이미지가 없습니다.</p>
+                <p style={{ textAlign: 'center', color: '#718096', padding: '40px' }}>업로드된 이미지가 없습니다.</p>
               ) : (
-                <div className="gallery">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
                   {uploadedImages.map((img, index) => (
-                    <div key={index} className="galleryItem">
+                    <div key={index} style={{ cursor: 'pointer' }}>
                       <img
                         src={img.url}
                         alt={img.filename}
-                        className="galleryImage"
-                        onClick={() =>
-                          handleSelectFromGallery(img.url, img.filename)
-                        }
+                        style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                        onClick={() => handleSelectFromGallery(img.url, img.filename)}
                       />
-                      <p className="galleryCaption">{img.timestamp}</p>
+                      <p style={{ marginTop: '8px', fontSize: '12px', color: '#718096', textAlign: 'center' }}>{img.timestamp}</p>
                     </div>
                   ))}
                 </div>
@@ -244,21 +294,31 @@ function App() {
         </div>
 
         {/* 오른쪽: 센서값 */}
-        <div className="sensorBox">
-          <h3>🌡️ 실시간 센서값</h3>
+        <div style={{ width: '320px', backgroundColor: '#edf2f7', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ fontSize: '20px', marginBottom: '20px', color: '#2d3748' }}>🌡️ 실시간 센서값</h3>
           {sensorData ? (
-            <ul className="sensorList">
-              <li>온도: {sensorData.temperature} °C</li>
-              <li>습도: {sensorData.humidity} %</li>
-              <li>토양 수분: {sensorData.soil_moisture}</li>
-              <li>수위: {sensorData.water_level} %</li>
-              <li>⏱ {sensorData.timestamp}</li>
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              <li style={{ padding: '12px', backgroundColor: 'white', borderRadius: '8px', marginBottom: '8px' }}>온도: {sensorData.temperature} °C</li>
+              <li style={{ padding: '12px', backgroundColor: 'white', borderRadius: '8px', marginBottom: '8px' }}>습도: {sensorData.humidity} %</li>
+              <li style={{ padding: '12px', backgroundColor: 'white', borderRadius: '8px', marginBottom: '8px' }}>토양 수분: {sensorData.soil_moisture}</li>
+              <li style={{ padding: '12px', backgroundColor: 'white', borderRadius: '8px', marginBottom: '8px' }}>수위: {sensorData.water_level} %</li>
+              <li style={{ padding: '12px', backgroundColor: 'white', borderRadius: '8px', fontSize: '12px', color: '#718096' }}>⏱ {sensorData.timestamp}</li>
             </ul>
           ) : (
-            <p>데이터 수신 대기중...</p>
+            <p style={{ textAlign: 'center', color: '#718096' }}>데이터 수신 대기중...</p>
           )}
 
-          <button onClick={handleTriggerSensor} className="sensorRefresh">
+          <button onClick={handleTriggerSensor} style={{
+            width: '100%',
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#48bb78',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600'
+          }}>
             🔄 새로고침
           </button>
         </div>
@@ -268,7 +328,6 @@ function App() {
 }
 
 export default App;
-
 }
 
 export default App;
