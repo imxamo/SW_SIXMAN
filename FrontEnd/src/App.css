@@ -1,236 +1,136 @@
+/* 전체 컨테이너 */
 .container {
-  text-align: center;
-  padding: 30px 20px;
   font-family: 'Segoe UI', Arial, sans-serif;
-  max-width: 1400px;
-  margin: 0 auto;
   background-color: #f5f7fa;
   min-height: 100vh;
+  padding: 30px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
+/* 좌우 레이아웃 */
 .layout {
-  display: grid;
-  grid-template-columns: 1fr 250px; /* 왼쪽은 가변, 오른쪽은 250px */
-  gap: 40px;
+  display: flex;
+  gap: 60px;
+  max-width: 1200px;
+  width: 100%;
   justify-content: center;
 }
 
+/* 메인 컨텐츠 */
 .mainContent {
-  width: 800px;
-  flex-shrink: 0;
+  flex: 1;
+  text-align: center;
 }
 
+/* 제목 */
 .title {
-  color: #2c3e50;
-  margin-bottom: 30px;
-  font-size: 32px;
-}
-
-.sensorBox {
-  width: 250px;
-  flex-shrink: 0;
-  padding: 20px;
-  background-color: #ecf0f1;
-  border-radius: 10px;
-  text-align: left;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
   color: #2c3e50;
 }
 
-.sensorList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 15px;
-  color: #2c3e50;
-}
-
-/* 탭 메뉴 */
+/* 탭 버튼 영역 */
 .tabContainer {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .tab {
-  padding: 12px 30px;
-  font-size: 16px;
-  cursor: pointer;
+  background: white;
   border: 2px solid #3498db;
-  background-color: #ecf0f1;
   color: #3498db;
-  border-radius: 8px;
-  transition: all 0.3s;
+  font-size: 16px;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
 }
 
 .tabActive {
-  padding: 12px 30px;
-  font-size: 16px;
-  cursor: pointer;
+  background: #3498db;
   border: 2px solid #3498db;
-  background-color: #3498db;
   color: white;
-  border-radius: 8px;
   font-weight: bold;
 }
 
+/* 컨텐츠 박스 */
 .content {
-  background-color: white;
+  background: white;
   padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  margin: 0 auto;
+  max-width: 600px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
+/* 이미지 업로드 */
 .uploadBox {
   margin-bottom: 20px;
 }
 
 .uploadLabel {
-  display: inline-block;
-  padding: 12px 24px;
-  background-color: #3498db;
+  background: #3498db;
   color: white;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s;
+  display: inline-block;
 }
 
 .fileInput {
   display: none;
 }
 
-.previewContainer {
-  margin: 20px 0;
-}
-
-.previewImage {
-  max-width: 400px;
-  max-height: 400px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
+/* 분석 버튼 */
 .analyzeButton {
-  padding: 14px 40px;
-  margin-top: 20px;
-  font-size: 18px;
-  cursor: pointer;
-  background-color: #27ae60;
+  background: #27ae60;
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.resultBox {
-  margin-top: 30px;
-  padding: 20px;
-  border: 2px solid #27ae60;
-  border-radius: 8px;
-  background-color: #e8f5e9;
-  display: inline-block;
-  text-align: left;
-  min-width: 300px;
-}
-
-.resultTitle {
-  color: #27ae60;
-  margin-bottom: 10px;
-}
-
-.resultText {
-  font-size: 18px;
-  color: #2c3e50;
-  font-weight: bold;
-}
-
-/* 갤러리 */
-.galleryHeader {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.cameraButton {
-  padding: 12px 24px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-}
-
-.refreshButton {
-  padding: 12px 24px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #95a5a6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-}
-
-.emptyText {
-  color: #7f8c8d;
-  font-size: 16px;
-  padding: 40px;
-}
-
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-  padding: 10px;
-  justify-items: center;
-}
-
-.galleryItem {
-  cursor: pointer;
-  transition: transform 0.2s;
-  border: 2px solid #ecf0f1;
-  border-radius: 8px;
-  padding: 10px;
-  background-color: #fafafa;
-  overflow: hidden;
-  width: 100%;
-  max-width: 300px;
-}
-
-.galleryImage {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
+  padding: 12px 28px;
   border-radius: 6px;
-  display: block;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  margin-top: 15px;
+  font-weight: bold;
 }
 
-.galleryCaption {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #7f8c8d;
-  text-align: center;
+/* 센서 박스 */
+.sensorBox {
+  width: 240px;
+  background: #ecf0f1;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: left;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
 
-/* 반응형 */
-@media (max-width: 1100px) {
-  .layout {
-    grid-template-columns: 1fr; /* 좁으면 한 줄 */
-  }
-  .mainContent {
-    width: 100%;
-    max-width: 800px;
-  }
-  .sensorBox {
-    width: 100%;
-    max-width: 400px;
-    margin-top: 20px;
-  }
+.sensorBox h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.sensorList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+/* 센서 새로고침 버튼 */
+.sensorRefresh {
+  background: black;
+  color: white;
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
 }
