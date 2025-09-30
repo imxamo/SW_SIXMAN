@@ -212,7 +212,7 @@ const styles = {
     textAlign: "center",
     padding: "30px 20px",
     fontFamily: "'Segoe UI', Arial, sans-serif",
-    maxWidth: "1200px",
+    maxWidth: "1400px",
     margin: "0 auto",
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",
@@ -342,9 +342,10 @@ const styles = {
   },
   gallery: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
     gap: "20px",
     marginTop: "20px",
+    padding: "10px",
   },
   galleryItem: {
     cursor: "pointer",
@@ -353,12 +354,14 @@ const styles = {
     borderRadius: "8px",
     padding: "10px",
     backgroundColor: "#fafafa",
+    overflow: "hidden",
   },
   galleryImage: {
     width: "100%",
     height: "200px",
     objectFit: "cover",
     borderRadius: "6px",
+    display: "block",
   },
   galleryCaption: {
     marginTop: "8px",
