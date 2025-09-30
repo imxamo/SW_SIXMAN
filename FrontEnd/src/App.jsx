@@ -74,7 +74,7 @@ function App() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok || !data.ok) {
         throw new Error(data.error || "서버 오류");
       }
@@ -114,8 +114,7 @@ function App() {
       <h1 style={styles.title}>🌿 상추 질병 AI 분석</h1>
 
       {/* 탭 메뉴 */}
-      // 탭 메뉴
-      <div style={styles.tabWrapper}>
+      <div style={styles.tabContainer}>
         <button
           style={activeTab === "upload" ? styles.tabActive : styles.tab}
           onClick={() => setActiveTab("upload")}
@@ -129,7 +128,6 @@ function App() {
           촬영 갤러리
         </button>
       </div>
-
 
       {/* 이미지 분석 탭 */}
       {activeTab === "upload" && (
@@ -214,8 +212,8 @@ const styles = {
     textAlign: "center",
     padding: "30px 20px",
     fontFamily: "'Segoe UI', Arial, sans-serif",
-    maxWidth: "900px",       // 화면을 가운데 오도록 최대 너비 지정
-    margin: "0 auto",        // 가운데 정렬
+    maxWidth: "1400px",
+    margin: "0 auto",
     backgroundColor: "#f5f7fa",
     minHeight: "100vh",
   },
@@ -230,29 +228,23 @@ const styles = {
     gap: "10px",
     marginBottom: "30px",
   },
-  tabWrapper: {
-    display: "inline-flex",      // 버튼을 같은 줄에 나란히
-    backgroundColor: "#3498db",  // 파란색 박스
-    borderRadius: "8px",
-    overflow: "hidden",          // 버튼이 박스 밖으로 안 나가도록
-    marginBottom: "30px",
-  },
   tab: {
     padding: "12px 30px",
     fontSize: "16px",
     cursor: "pointer",
-    backgroundColor: "transparent", // 기본은 투명
-    color: "white",                  // 글씨는 흰색
-    border: "none",
-    transition: "background-color 0.3s",
+    border: "2px solid #ddd",
+    backgroundColor: "white",
+    borderRadius: "8px",
+    transition: "all 0.3s",
   },
   tabActive: {
     padding: "12px 30px",
     fontSize: "16px",
     cursor: "pointer",
-    backgroundColor: "white",  // 선택된 건 흰색
-    color: "#3498db",          // 글씨는 파란색
-    border: "none",
+    border: "2px solid #3498db",
+    backgroundColor: "#3498db",
+    color: "white",
+    borderRadius: "8px",
     fontWeight: "bold",
   },
   content: {
@@ -350,6 +342,7 @@ const styles = {
   },
   gallery: {
     display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
     gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: "20px",
     marginTop: "20px",
