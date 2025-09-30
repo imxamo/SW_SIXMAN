@@ -342,10 +342,11 @@ const styles = {
   },
   gallery: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: "20px",
     marginTop: "20px",
     padding: "10px",
+    justifyItems: "center",
   },
   galleryItem: {
     cursor: "pointer",
@@ -355,6 +356,8 @@ const styles = {
     padding: "10px",
     backgroundColor: "#fafafa",
     overflow: "hidden",
+    width: "100%",
+    maxWidth: "300px",
   },
   galleryImage: {
     width: "100%",
