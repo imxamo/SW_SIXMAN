@@ -108,22 +108,46 @@ function App() {
     }
   };
 
-  // 촬영 트리거
-  const handleTriggerCamera = async () => {
-    try {
-      const response = await fetch("/trigger");
-      const data = await response.json();
-      if (data.status === "ok") {
-        alert("카메라 촬영 요청을 보냈습니다!");
-        setTimeout(() => {
-          fetchUploadedImages();
-        }, 3000);
-      }
-    } catch (error) {
-      console.error("촬영 트리거 실패:", error);
-      alert("카메라 연결에 실패했습니다.");
+// 촬영 트리거 (CAM)
+const handleTriggerCamera = async () => {
+  try {
+    const response = await fetch("/trigger/cam");   // ✅ CAM 트리거
+    const data = await response.json();
+    if (data.status === "ok") {
+      alert("카메라 촬영 요청을 보냈습니다!");
+      setTimeout(() => {
+        fetchUploadedImages();
+      }, 3000);
     }
-  };
+  } catch (error) {
+    console.error("촬영 트리거 실패:", error);
+    alert("카메라 연결에 실패했습니다.");
+  }
+};
+
+// 센서 새로고침 (ESP32)
+const handleTriggerSensor = async () => {
+  try {
+    const response = await fetch("/trigger/esp32");  // ✅ ESP32 트리거
+    const data = await response.json();
+    if (data.status === "ok") {
+      alert("센서 새 데이터 요청을 보냈습니다!");
+      setTimeout(() => {
+        // 센서값 다시 가져오기
+        fetch("/api/sensor")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.ok) setSensorData(data.data);
+          });
+      }, 3000);
+    }
+  } catch (error) {
+    console.error("센서 트리거 실패:", error);
+    alert("센서 연결에 실패했습니다.");
+  }
+};
+
+
 
   return (
     <div className="container">
@@ -234,11 +258,11 @@ function App() {
           ) : (
             <p>데이터 수신 대기중...</p>
           )}
-
-          {/* 새로고침 버튼 */}
-          <button onClick={() => window.location.reload()} className="sensorRefresh">
+          {/* 센서 새로고침 버튼 */}
+          <button onClick={handleTriggerSensor} className="sensorRefresh">
             🔄 새로고침
           </button>
+
           
         </div>
       </div>
