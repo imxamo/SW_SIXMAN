@@ -40,6 +40,8 @@ void setup() {
   // NTP 동기화
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
+  delay(10000);
+
   // 초기 시간 기록
   last_check_time = time(nullptr);
 }
@@ -72,7 +74,7 @@ void loop() {
 
     // 조도센서 판정 (밝기 임계값은 환경에 맞게 조정 필요)
     int ldr_value = analogRead(LDR_PIN);
-    sunlight = (ldr_value > 1000); // 플래그
+    sunlight = (ldr_value < 1000); // 플래그
 
     // 카운터 증가 (빛 공급이 있을 때만)
     if (light_hours_count < LIGHT_GOAL_HOURS) {
