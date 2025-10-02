@@ -11,7 +11,7 @@ const char* password = "62935701";
 
 // ===== 핀 설정 =====
 #define LED_PIN 5
-#define LDR_PIN 34                 // 조도센서 아날로그 핀
+#define LDR_PIN 35                 // 조도센서 아날로그 핀
 #define LDR_THRESHOLD 1000         // 조도 임계값 (환경에 맞게 조정)
 
 // ===== 상태 변수 =====
