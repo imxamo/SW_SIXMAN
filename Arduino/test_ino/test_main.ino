@@ -10,8 +10,8 @@
 #define Water_Per_Try 25.0
 #define Water_Per_Sec 25.0
 #define Pump_Cooltime 3
-#define HOT 26          // 팬 작동 온도
-#define COOL 20         // 팬 정지 온도
+#define WET 60          // 팬 작동 습도
+#define DRY_HUMID 40    // 팬 정지 습도
 #define DRY 20          // 토양 건조 임계값
 
 // ===== 수위 센서 임계값 =====
@@ -267,13 +267,15 @@ void pump() {
 
 void fan() {
   if (digitalRead(COOLING_FAN_PIN) == LOW) { // 팬이 꺼져있을 때
-    if (airTemp >= HOT) { // 26도 이상일 때
+    if (airMoist >= WET) { // 60% 이상일 때
       digitalWrite(COOLING_FAN_PIN, HIGH);
+      Serial.println("🌀 팬 작동 시작 (습도 높음)");
     }
   }
   else { // 팬이 켜져있을 때
-    if (airTemp < COOL) { // 20도 미만일 때
+    if (airMoist < DRY_HUMID) { // 40% 미만일 때
       digitalWrite(COOLING_FAN_PIN, LOW);
+      Serial.println("⏸️ 팬 정지 (습도 낮음)");
     }
   }
 }
