@@ -29,7 +29,7 @@
 #define LED_PIN 5
 #define DIRT_PIN A0
 #define WATER_PIN 34
-#define LDR_PIN 34
+#define LDR_PIN 35
 #define TEMP_PIN 22
 #define DHTTYPE DHT11
 
