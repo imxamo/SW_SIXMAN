@@ -135,7 +135,9 @@ void irrigateLiters(float liters) {
 
   Serial.print("[관수] 목표량 ");
   Serial.print(liters, 3);
-  Serial.print(" L → ");
+  Serial.print(" L (");
+  Serial.print(liters * 1000, 0);
+  Serial.print(" ml) → ");
   Serial.print(ms);
   Serial.println(" ms 가동");
 
@@ -179,15 +181,67 @@ void printStatus() {
   float eventL = calcEventVolumeL();
   float daysPeriod = (dailyL > 0) ? (eventL / dailyL) : 0;
 
-  Serial.println("===== 생육 단계 자동 전환 =====");
+  Serial.println("\n===== 생육 단계 자동 전환 =====");
   Serial.print("경과일수: "); Serial.println(d);
   Serial.print("현재 단계: "); Serial.println(name);
   Serial.print("Kc="); Serial.print(Kc, 2);
   Serial.print(", G="); Serial.println(G, 2);
   Serial.print("ET0="); Serial.print(ET0_MM_DAY, 2); Serial.println(" mm/day");
   Serial.print("하루 필요수량: "); Serial.print(dailyL, 3); Serial.println(" L/화분");
-  Serial.print("권장 1회 급수량: "); Serial.print(eventL, 3); Serial.println(" L/화분");
+  Serial.print("권장 1회 급수량: "); Serial.print(eventL, 3); 
+  Serial.print(" L ("); Serial.print(eventL * 1000, 0); Serial.println(" ml)");
   Serial.print("관수 주기: "); Serial.print(daysPeriod, 1); Serial.println(" 일/회");
+  
+  // 다음 급수까지 남은 시간
+  Serial.println("\n----- 급수 스케줄 -----");
+  time_t lastUtc = getLastIrrigUtc();
+  time_t nowUtc;
+  
+  if (lastUtc == 0) {
+    Serial.println("⚠️ 아직 급수 이력 없음");
+    Serial.println("→ 다음 관수 주기 도달 시 자동 급수");
+  } else if (getNow(nowUtc)) {
+    double elapsedDays = difftime(nowUtc, lastUtc) / 86400.0;
+    double remainDays = daysPeriod - elapsedDays;
+    
+    Serial.print("마지막 급수: ");
+    Serial.print(elapsedDays, 1);
+    Serial.println("일 전");
+    
+    if (remainDays > 0) {
+      Serial.print("다음 급수까지: ");
+      
+      int days = (int)remainDays;
+      int hours = (int)((remainDays - days) * 24);
+      int minutes = (int)(((remainDays - days) * 24 - hours) * 60);
+      
+      if (days > 0) {
+        Serial.print(days);
+        Serial.print("일 ");
+      }
+      Serial.print(hours);
+      Serial.print("시간 ");
+      Serial.print(minutes);
+      Serial.println("분 남음");
+      
+      //Serial.print("진행률: ");
+      //Serial.print((elapsedDays / daysPeriod) * 100, 1);
+      //Serial.println("%");
+    } else {
+      Serial.println("⏰ 급수 시간 도달!");
+      Serial.println("→ 다음 loop에서 자동 급수 실행");
+    }
+  }
+  Serial.println("========================\n");
+}
+
+// 테스트용 함수
+void setPlantDaysAgo(int days) {
+  time_t nowUtc;
+  if (getNow(nowUtc)) {
+    time_t plantUtc = nowUtc - (days * 86400);  // days일 전
+    prefs.putLong64(NVS_KEY_PLANT, (long long)plantUtc);
+  }
 }
 
 void setup() {
@@ -215,15 +269,21 @@ void setup() {
   time_t plantEpoch = prefs.getLong64(NVS_KEY_PLANT, 0);
   if (plantEpoch == 0) {
     Serial.println("\n[안내] 파종 시각이 저장되어 있지 않습니다.");
-    Serial.println("시리얼 창에 대문자 P 입력 → 현재 시각을 파종 시각으로 저장합니다.");
+    Serial.println("시리얼 창에 명령어를 입력하세요.");
   } else {
     Serial.print("[불러옴] 저장된 파종 UTC epoch: "); Serial.println((long long)plantEpoch);
   }
 
-  Serial.println("\n명령어:");
+  Serial.println("\n===== 명령어 =====");
   Serial.println("  P : 현재 시각을 파종 시각으로 저장");
   Serial.println("  R : 저장된 파종 시각 삭제");
-  Serial.println("  E : 현재 파라미터/계산값 출력");
+  Serial.println("  E : 현재 상태 출력");
+  Serial.println("  ---");
+  Serial.println("  1 : 5일차 테스트 (초기 단계)");
+  Serial.println("  2 : 15일차 테스트 (생육중기)");
+  Serial.println("  3 : 30일차 테스트 (수확기)");
+  Serial.println("  T : 강제 관수 실행");
+  Serial.println("===================");
 
   // 펌프 핀 설정
   pinMode(PUMP_IN1, OUTPUT);
@@ -236,7 +296,7 @@ void setup() {
   ledcAttachPin(PUMP_ENA, PUMP_CH);
   ledcWrite(PUMP_CH, 0);
   
-  Serial.println("===== 급수 알고리즘 테스트 시작 =====");
+  Serial.println("\n===== 급수 알고리즘 테스트 시작 =====\n");
 }
 
 unsigned long lastPrint = 0;
@@ -245,23 +305,54 @@ void loop() {
   // 시리얼 명령 처리
   if (Serial.available()) {
     char c = Serial.read();
-    if (c=='P') {
+    if (c=='P' || c=='p') {
       time_t nowUtc;
       if (getNow(nowUtc)) {
         prefs.putLong64(NVS_KEY_PLANT, (long long)nowUtc);
         Serial.println("[저장] 파종 시각 저장 완료.");
+        printStatus();
       } else {
         Serial.println("[오류] 현재 시각을 얻지 못했습니다(NTP 미동기)");
       }
-    } else if (c=='R') {
+    } 
+    else if (c=='R' || c=='r') {
       prefs.remove(NVS_KEY_PLANT);
-      Serial.println("[삭제] 파종 시각 삭제 완료.");
-    } else if (c=='E') {
+      prefs.remove(NVS_KEY_LAST_IRRIG);
+      Serial.println("[삭제] 모든 데이터 삭제 완료.");
+    } 
+    else if (c=='E' || c=='e') {
       printStatus();
+    }
+    else if (c=='1') {
+      setPlantDaysAgo(5);
+      Serial.println("→ 5일 전 파종으로 설정 (초기 단계)");
+      printStatus();
+    }
+    else if (c=='2') {
+      setPlantDaysAgo(15);
+      Serial.println("→ 15일 전 파종으로 설정 (생육중기)");
+      printStatus();
+    }
+    else if (c=='3') {
+      setPlantDaysAgo(30);
+      Serial.println("→ 30일 전 파종으로 설정 (수확기)");
+      printStatus();
+    }
+    else if (c=='T' || c=='t') {
+      Serial.println("\n[테스트] 강제 관수 실행!");
+      float eventL = calcEventVolumeL();
+      irrigateLiters(eventL);
+      
+      // 급수 이력 저장
+      time_t nowUtc;
+      if (getNow(nowUtc)) {
+        setLastIrrigUtc(nowUtc);
+        Serial.println("→ 급수 이력 저장 완료\n");
+      }
     }
   }
 
-  // 주기적 상태 출력
+  // 주기적 상태 출력 (5초마다)
   if (millis() - lastPrint > 5000) {
     printStatus();
     lastPrint = millis();
@@ -286,9 +377,10 @@ void loop() {
         double elapsedDays = (lastUtc > 0) ? (difftime(nowUtc, lastUtc) / 86400.0) : 9999.0;
 
         if (elapsedDays >= daysPeriod) {
-          Serial.println("[스케줄] 관수 주기 도달 → 관수 실행");
+          Serial.println("\n[스케줄] 관수 주기 도달 → 자동 관수 실행");
           irrigateLiters(eventL);
           setLastIrrigUtc(nowUtc);
+          Serial.println();
         }
       }
     }
