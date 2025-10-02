@@ -449,11 +449,6 @@ void loop() {
     sendSensorData();
   }
 
-  // 긴급 급수 (수위 위험)
-  if (waterLevelPercent < Water_Level_Danger) {
-    pump();
-  }
-
   // 수위 경고 (비퍼 - 현재 미구현)
   if (waterLevelPercent < Water_Level_Caution && beepDelay > 0) {
     // 비퍼 코드 추가 가능
