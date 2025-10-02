@@ -526,5 +526,5 @@ void loop() {
   edge_hour = ntime.tm_hour;
   edge_minute = ntime.tm_min;
 
-  delay(100);  // ✅ 수정: 1초에서 100ms로 (더 빠른 응답성)
+  delay(1000); 
 }
