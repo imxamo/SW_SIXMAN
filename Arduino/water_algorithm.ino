@@ -1,6 +1,7 @@
 // ESP32: Real-time growth stage scheduler (NTP + NVS)
 // - 최초 1회: 시리얼에 'P' 입력 → 현재 시각을 파종시각으로 저장
 // - 매 loop: 경과일수(days_since)로 단계/계수를 자동 업데이트
+#include <Arduino.h>
 #include <WiFi.h>
 #include <time.h>
 #include <Preferences.h>
@@ -15,37 +16,14 @@
 #define PUMP_PWM_RES  8      // 8-bit (0~255)
 #define PUMP_FULL_DUTY 255   // 최대 듀티
 
-// ---- 펌프 유량 (실측 후 교체) ----
-// 예) 0.20 L/s = 200 mL/s
+// ---- 펌프 유량 (실측 후 교체 요함) ----
+// 0.10 L/s = 100 mL/s
 float PUMP_FLOW_LPS = 0.20f;
 
 // 최소/최대 동작시간(안전)
 const unsigned long PUMP_MIN_MS = 250;   // 너무 짧은 펄스 방지(예: 0.25초)
 const unsigned long PUMP_MAX_MS = 15000; // 한 번에 15초 이상은 분할 권장
 
-// 관수 스케줄: eventL을 며칠 간격으로 줄지 (printStatus에서 구한 daysPeriod 사용)
-const char* NVS_KEY_LAST_IRRIG = "last_irrig"; // 마지막 관수 UTC epoch 저장
-
-void pump_active(float time){
-	ledcWrite(PUMP_ENA, 255);
-	delay(time * 1000);
-	ledcWrite(PUMP_ENA, 0); 
-}
-
-void pump(){
-	if(pumpDelay >= Pump_Cooltime && soilMoist < DRY && waterRemain > 0){
-		if(waterRemain >= Water_Per_Try){
-			pump_active(Water_Per_Try/Water_Per_Sec);
-			waterRemain -= Water_Per_Try;
-			pumpDelay = 0;
-		}
-		else{
-			pump_active(waterRemain/Water_Per_Sec);
-			waterRemain = 0;
-			pumpDelay = 0;
-		}
-	}
-}
 
 //////////////////////// Wi-Fi & Time ////////////////////////
 const char* WIFI_SSID = "YOUR_SSID";
@@ -56,6 +34,11 @@ const int   DST_OFFSET_SEC = 0;
 Preferences prefs;
 const char* NVS_NAMESPACE = "grow";
 const char* NVS_KEY_PLANT = "plant_epoch";  // time_t(UTC seconds)
+
+///////////////////////////////////////////////////////////////
+
+// 관수 스케줄: eventL을 며칠 간격으로 줄지 (printStatus에서 구한 daysPeriod 사용)
+const char* NVS_KEY_LAST_IRRIG = "last_irrig"; // 마지막 관수 UTC epoch 저장
 
 ///////////////////// Pot/Model Parameters ///////////////////
 // 화분/토양/모델 기본값. 현재는 재배키트 기준
@@ -242,7 +225,7 @@ void setup() {
 
   // LEDC 초기화
   ledcSetup(PUMP_CH, PUMP_PWM_FREQ, PUMP_PWM_RES);
-  ledcAttachPin(PUMP_PIN_EN, PUMP_CH);
+  ledcAttachPin(PUMP_ENA, PUMP_CH);
   ledcWrite(PUMP_CH, 0); // 펌프 OFF
   
 }
