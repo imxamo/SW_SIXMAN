@@ -6,12 +6,12 @@
 #define TIMEOUT 60  // seconds
 
 // === 사용자 설정 ===
-// const char* ssid       = "SK_WiFiGIGA0A38_5G";
-// const char* password   = "1704020165";
+// const char* ssid       = "JJY_WIFI";
+// const char* password   = "62935701";
 const char* ssid       = "JJY_WIFI";
 const char* password   = "62935701";
-const char* serverUrl  = "http://116.124.191.174:15020/get";   // GET 폴링
-const char* uploadUrl  = "http://116.124.191.174:15020/upload";  // POST 업로드
+const char* serverUrl  = "http://116.124.191.174:15020/get?id=ESP32CAM-001";     
+const char* uploadUrl  = "http://116.124.191.174:15020/upload?id=ESP32CAM-001";  
 
 int bfHour;  // 마지막으로 전송한 시간(중복 방지)
 
@@ -194,3 +194,4 @@ void loop() {
   http.end();
   delay(30 * 1000);
 }
+
