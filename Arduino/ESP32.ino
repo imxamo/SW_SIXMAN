@@ -182,9 +182,9 @@ unsigned long msForLiters(float liters) {
 // 펌프 ON/OFF (PWM 최대 듀티로 단순 구동)
 void pumpRunMs(unsigned long ms) {
   // 방향핀은 setup에서 이미 설정
-  ledcWrite(PUMP_CH, PUMP_FULL_DUTY);
+  ledcWrite(PUMP_ENA, PUMP_FULL_DUTY);
   delay(ms);
-  ledcWrite(PUMP_CH, 0);
+  ledcWrite(PUMP_ENA, 0);
 }
 
 // L 단위로 관수 한 번 실행 (필요시 분할 관수)
@@ -220,7 +220,6 @@ time_t getLastIrrigUtc() {
 }
 
 void led() {
-
     hour = ntime.tm_hour;
     minute = ntime.tm_min;
     second = ntime.tm_sec;
@@ -228,49 +227,42 @@ void led() {
     // 하루 시작 전 (자정 ~ 06:00) → 카운터 리셋 & LED OFF
     if (hour < START_HOUR) {
         light_hours_count = 0;
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(LED_PIN, HIGH); // ✅ 반전됨 (HIGH=OFF)
     }
 
-    // 채광 시간대 (06:00 ~ 22:00) 에만 LED on/off 판단
+    // 채광 시간대 (06:00 ~ 22:00)
     else if (hour >= START_HOUR && hour < START_HOUR + LIGHT_GOAL_HOURS) {
-        // 경과 시간 계산 (Δt 누적)
         time_t now = time(nullptr);
         int delta = difftime(now, last_check_time);
         last_check_time = now;
 
-        // 조도센서 판정 (밝기 임계값은 환경에 맞게 조정 필요)
         int ldr_value = analogRead(LDR_PIN);
-        sunlight = (ldr_value < 1000); // ★★★★★★★ 팩트 기반 값 필요
-    
+        sunlight = (ldr_value < 1000); // 밝을 때 True (테스트 필요)
 
-        // 카운터 증가 (빛 공급이 있을 때만)
         if (light_hours_count < LIGHT_GOAL_HOURS) {
-        if (sunlight) {
-            digitalWrite(LED_PIN, LOW); // 해 있음 → LED OFF
-            light_hours_count += delta / 3600.0;
-        }
-        else {
-            digitalWrite(LED_PIN, HIGH); // 해 없음 → LED ON
-            light_hours_count += delta / 3600.0;
-        }
-        }
-        else {
-        digitalWrite(LED_PIN, LOW); // 목표 달성 시 LED OFF
+            if (sunlight) {
+                digitalWrite(LED_PIN, HIGH); // 밝음 → LED OFF
+                light_hours_count += delta / 3600.0;
+            } else {
+                digitalWrite(LED_PIN, LOW);  // 어두움 → LED ON
+                light_hours_count += delta / 3600.0;
+            }
+        } else {
+            digitalWrite(LED_PIN, HIGH); // 목표 달성 시 LED OFF
         }
     }
 
     // 하루 종료 (22:00 ~ 자정) → LED OFF
     else {
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(LED_PIN, HIGH); // ✅ 반전 (HIGH=OFF)
     }
 
-    // 상태 출력
     Serial.printf("시간 %02d:%02d:%02d | 누적 %.2f h | LED %s | LDR %d\n",
-                hour, minute, second,
-                light_hours_count,
-                digitalRead(LED_PIN) ? "ON" : "OFF",
-                analogRead(LDR_PIN));
-}       
+                  hour, minute, second,
+                  light_hours_count,
+                  (digitalRead(LED_PIN) == LOW) ? "ON" : "OFF",
+                  analogRead(LDR_PIN));
+}
 
 void fan(){
 	if(digitalRead(COOLING_FAN_PIN) == LOW){
@@ -396,14 +388,52 @@ void sensor(){
 	else {
     	Serial.println("DHT11 READ ERROR");
   	}
+
     // --- 토양 습도 ---
     soilMoist = analogRead(DIRT_PIN);
     Serial.print("토양 습도 값: ");
     Serial.println(soilMoist);
+
     // --- 물 수위 ---
     waterLevel = analogRead(WATER_PIN);
     waterLevelPercent = waterLevel / 40.95;
     Serial.printf("물통 수위: %d (%.1f%%)\n", waterLevel, waterLevelPercent);
+
+    int ldrValue = analogRead(LDR_PIN);
+    Serial.printf("조도센서(LDR): %d\n", ldrValue);
+}
+
+///////////////////////////// 출력 ////////////////////////////
+void printStatus() {
+  time_t plantEpoch = prefs.getLong64(NVS_KEY_PLANT, 0);
+  if (plantEpoch == 0) {
+    Serial.println("파종 시각 미설정 → 'P' 입력으로 설정하세요.");
+    return;
+  }
+  int d = daysSince(plantEpoch);
+  if (d < 0) {
+    Serial.println("시간 동기화 전입니다(NTP/RTC 필요).");
+    return;
+  }
+
+  const char* name;
+  float Kc, G;
+  stageWithLerp(d, Kc, G, name);
+
+  float dailyL = calcDailyNeedL(ET0_MM_DAY, Kc, G);
+  float eventL = calcEventVolumeL();
+  // 관수 주기
+  float daysPeriod = (dailyL > 0) ? (eventL / dailyL) : 0;
+
+  Serial.println("===== 생육 단계 자동 전환 =====");
+  Serial.print("경과일수: "); Serial.println(d);
+  Serial.print("현재 단계: "); Serial.println(name);
+  Serial.print("Kc="); Serial.print(Kc, 2);
+  Serial.print(", G="); Serial.println(G, 2);
+  Serial.print("ET0="); Serial.print(ET0_MM_DAY, 2); Serial.println(" mm/day");
+  Serial.print("하루 필요수량: "); Serial.print(dailyL, 3); Serial.println(" L/화분");
+  Serial.print("권장 1회 급수량: "); Serial.print(eventL, 3); Serial.println(" L/화분");
+  Serial.print("관수 주기: "); Serial.print(daysPeriod, 1); Serial.println(" 일/회");
 }
 
 ///////////////////////////// setup ///////////////////////////
@@ -461,7 +491,7 @@ void setup() {
     // 3.3.1 버전 코드
     ledcAttach(PUMP_ENA, PUMP_PWM_FREQ, PUMP_PWM_RES);
 
-    ledcWrite(PUMP_CH, 0); // 펌프 OFF
+    ledcWrite(PUMP_ENA, 0); // 펌프 OFF
 }
 
 ///////////////////////////// loop ////////////////////////////
@@ -478,12 +508,6 @@ void loop(){
     fan();
     led();
     wifi();
-
-    edge_hour = ntime.tm_hour;
-    edge_minute = ntime.tm_min;
-    loop_count++;
-
-    delay(60*1000);
 
     // ===== 시리얼 명령 처리 (P/R/E) =====
     if (Serial.available()) {
@@ -537,42 +561,13 @@ void loop(){
           Serial.println("[스케줄] 관수 주기 도달 → 관수 실행");
           irrigateLiters(eventL);
           setLastIrrigUtc(nowUtc);
+                }
+            }
         }
-      }
     }
-  }
+    edge_hour = ntime.tm_hour;
+    edge_minute = ntime.tm_min;
+    loop_count++;
 
-}
-
-///////////////////////////// 출력 ////////////////////////////
-void printStatus() {
-  time_t plantEpoch = prefs.getLong64(NVS_KEY_PLANT, 0);
-  if (plantEpoch == 0) {
-    Serial.println("파종 시각 미설정 → 'P' 입력으로 설정하세요.");
-    return;
-  }
-  int d = daysSince(plantEpoch);
-  if (d < 0) {
-    Serial.println("시간 동기화 전입니다(NTP/RTC 필요).");
-    return;
-  }
-
-  const char* name;
-  float Kc, G;
-  stageWithLerp(d, Kc, G, name);
-
-  float dailyL = calcDailyNeedL(ET0_MM_DAY, Kc, G);
-  float eventL = calcEventVolumeL();
-  // 관수 주기
-  float daysPeriod = (dailyL > 0) ? (eventL / dailyL) : 0;
-
-  Serial.println("===== 생육 단계 자동 전환 =====");
-  Serial.print("경과일수: "); Serial.println(d);
-  Serial.print("현재 단계: "); Serial.println(name);
-  Serial.print("Kc="); Serial.print(Kc, 2);
-  Serial.print(", G="); Serial.println(G, 2);
-  Serial.print("ET0="); Serial.print(ET0_MM_DAY, 2); Serial.println(" mm/day");
-  Serial.print("하루 필요수량: "); Serial.print(dailyL, 3); Serial.println(" L/화분");
-  Serial.print("권장 1회 급수량: "); Serial.print(eventL, 3); Serial.println(" L/화분");
-  Serial.print("관수 주기: "); Serial.print(daysPeriod, 1); Serial.println(" 일/회");
+    delay(10*1000);
 }
