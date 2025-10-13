@@ -223,9 +223,12 @@ void setup() {
   digitalWrite(PUMP_IN1, HIGH);
   digitalWrite(PUMP_IN2, LOW);
 
-  // LEDC 초기화
-  ledcSetup(PUMP_CH, PUMP_PWM_FREQ, PUMP_PWM_RES);
-  ledcAttachPin(PUMP_ENA, PUMP_CH);
+  // 2.x.x 버전 코드
+  // ledcSetup(PUMP_CH, PUMP_PWM_FREQ, PUMP_PWM_RES); // 컴파일 오류 시 주석처리
+  // ledcAttachPin(PUMP_ENA, PUMP_CH);
+
+  // 3.3.1 버전 코드
+  ledcAttach(PUMP_ENA, PUMP_PWM_FREQ, PUMP_PWM_RES);
   ledcWrite(PUMP_CH, 0); // 펌프 OFF
   
 }
