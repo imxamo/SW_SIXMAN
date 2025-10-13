@@ -16,7 +16,7 @@
 #define COOLING_FAN_PIN 33 // Fan
 #define WATER_PIN 34 // 수위 센서
 #define LDR_PIN 35 // 조도 센서
-#define DIRT_PIN A0 // 토양 센서
+#define DIRT_PIN 36 // 토양 센서
 #define DHTTYPE DHT11 // 온습도 관련
 #define PUMP_IN1 16 // 펌프
 #define PUMP_IN2 17 // 펌프
