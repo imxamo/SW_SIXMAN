@@ -247,8 +247,8 @@ def upload():
                 hum = float(lines[1].split(":")[1].strip().replace("%", "").strip())
                 soil = int(lines[2].split(":")[1].strip())
                 water = float(lines[3].split(":")[1].strip().replace("%", "").strip())
-                led = "ON" if int(lines[4].split(":")[1].strip()) == 1 else "OFF"
-                fan = "ON" if int(lines[5].split(":")[1].strip()) == 1 else "OFF"
+                led = "OFF" if int(lines[4].split(":")[1].strip()) == 1 else "ON"
+                fan = "OFF" if int(lines[5].split(":")[1].strip()) == 1 else "ON"
                 
 
                 # 최신 센서값 메모리에 저장
