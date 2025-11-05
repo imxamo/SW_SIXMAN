@@ -311,12 +311,16 @@ void wifi(){
 
 // 센서 데이터 보내는 함수
 void sendSensorData() {
+  int LED_state = digitalRead(LED_PIN);
+  int FAN_state = digitalRead(COOLING_FAN_PIN);
   // === sensor.txt 문자열 만들기 ===
   String sensorData = "";
   sensorData += "온도: " + String(airTemp) + " C\n";
   sensorData += "습도: " + String(airMoist) + " %\n";
   sensorData += "토양습도: " + String(soilMoist) + "\n";
   sensorData += "물수위: " + String(waterLevelPercent) + " %\n";
+  sensorData += "LED: " + String(LED_state) + " %\n";
+  sensorData += "FAN: " + String(FAN_state) + " %\n";
 
   // === 서버로 POST 전송 ===
   if (WiFi.status() == WL_CONNECTED) {
