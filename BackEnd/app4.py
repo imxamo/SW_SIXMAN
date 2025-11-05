@@ -247,18 +247,23 @@ def upload():
                 hum = float(lines[1].split(":")[1].strip().replace("%", "").strip())
                 soil = int(lines[2].split(":")[1].strip())
                 water = float(lines[3].split(":")[1].strip().replace("%", "").strip())
+                led = "ON" if int(lines[4].split(":")[1].strip()) == 1 else "OFF"
+                fan = "ON" if int(lines[5].split(":")[1].strip()) == 1 else "OFF"
+                
 
                 # 최신 센서값 메모리에 저장
                 latest_sensor_data["temperature"] = temp
                 latest_sensor_data["humidity"] = hum
                 latest_sensor_data["soil_moisture"] = soil
                 latest_sensor_data["water_level"] = water
+                latest_sensor_data["led_state"] = led
+                latest_sensor_data["fan_state"] = fan
                 latest_sensor_data["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 # ✅ 센서 전용 DB에 저장
-                insert_sensor_data(temp, hum, soil, water)
+                insert_sensor_data(temp, hum, soil, water, led, fan)
 
-                print(f"[ESP32 센서 업로드] 온도:{temp}°C, 습도:{hum}%, 토양:{soil}, 수위:{water}%")
+                print(f"[ESP32 센서 업로드] 온도:{temp}°C, 습도:{hum}%, 토양:{soil}, 수위:{water}%, LED:{led}, FAN:{fan}")
             except Exception as e:
                 print(f"[ESP32 센서 파싱 오류] {e}")
 
