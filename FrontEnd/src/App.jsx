@@ -122,8 +122,8 @@ function App() {
               <li>습도: {sensorData?.humidity} %</li>
               <li>토양 수분: {sensorData?.soil_moisture}</li>
               <li>수위: {sensorData?.water_level} %</li>
-              <li>LED 상태: {sensorData?.led}</li>
-              <li>쿨링팬 상태: {sensorData?.fan}</li>
+              <li>LED 상태: {sensorData?.led_state}</li>
+              <li>쿨링팬 상태: {sensorData?.fan_state}</li>
               <li>⏱ {sensorData?.timestamp}</li>
             </ul>
           ) : (
