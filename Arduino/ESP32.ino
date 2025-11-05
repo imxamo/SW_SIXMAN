@@ -23,7 +23,7 @@
 #define PUMP_ENA 18 // 펌프
 
 #define HOT 25
-#define WET 60
+#define WET 55
 #define DRY 20
 
 // 수위 센서 범위 : 0~4095
@@ -55,8 +55,10 @@ const long GMT_OFFSET_SEC = 9 * 3600;    // 한국 UTC+9
 const int DST_OFFSET_SEC = 0;
 
 // ===== Wi-Fi 설정 =====
-const char* ssid = "JJY_WIFI";       // 와이파이 SSID
-const char* password = "62935701";   // 와이파이 비밀번호
+//const char* ssid = "JJY_WIFI";       // 와이파이 SSID
+//const char* password = "62935701";   // 와이파이 비밀번호
+const char* ssid = "dtd";       // 와이파이 SSID
+const char* password = "135792468";   // 와이파이 비밀번호
 const char* serverUrl  = "http://116.124.191.174:15020/get?id=ESP32-001";
 const char* uploadUrl  = "http://116.124.191.174:15020/upload?id=ESP32-001";
 const char* levelUrl   = "http://116.124.191.174:15020/level?id=ESP32-001";
@@ -265,13 +267,13 @@ void led() {
 }
 
 void fan(){
-	if(digitalRead(COOLING_FAN_PIN) == LOW){
-    	if(airTemp >= HOT || airMoist >= WET){
-		  digitalWrite(COOLING_FAN_PIN, HIGH);
+	if(digitalRead(COOLING_FAN_PIN) == HIGH){
+    	if(airMoist >= WET){
+		  digitalWrite(COOLING_FAN_PIN, LOW);
 	  	}
   	}
   	else if(airTemp < HOT && airMoist < WET){
-		digitalWrite(COOLING_FAN_PIN, LOW);
+		digitalWrite(COOLING_FAN_PIN, HIGH);
 	}
 }
 
@@ -317,10 +319,10 @@ void sendSensorData() {
   String sensorData = "";
   sensorData += "온도: " + String(airTemp) + " C\n";
   sensorData += "습도: " + String(airMoist) + " %\n";
-  sensorData += "토양습도: " + String(soilMoist) + "\n";
+  sensorData += "토양습도: " + String(soilMoist) + " %\n";
   sensorData += "물수위: " + String(waterLevelPercent) + " %\n";
-  sensorData += "LED: " + String(LED_state) + " %\n";
-  sensorData += "FAN: " + String(FAN_state) + " %\n";
+  sensorData += "LED: " + String(LED_state) + "\n";
+  sensorData += "FAN: " + String(FAN_state) + "\n";
 
   // === 서버로 POST 전송 ===
   if (WiFi.status() == WL_CONNECTED) {
@@ -394,9 +396,13 @@ void sensor(){
   	}
 
     // --- 토양 습도 ---
-    soilMoist = analogRead(DIRT_PIN);
+    int dry = 3500;
+    int wet = 200;
+    // 센서 값 스케일링
+    soilMoist = map(analogRead(DIRT_PIN), dry, wet, 0, 100);
+
     Serial.print("토양 습도 값: ");
-    Serial.println(soilMoist);
+    Serial.println(soilMoist + " %");
 
     // --- 물 수위 ---
     waterLevel = analogRead(WATER_PIN);
@@ -457,6 +463,7 @@ void setup() {
     Serial.println("시간 불러오는 중");
     // configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, ntpServer); // 순서 변경 : wifi_connect 이후
     configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, "pool.ntp.org", "time.nist.gov");
+    delay(10000);
 
     Serial.println("식물 성장 단계 불러오는 중");
     getPlantLevel();
