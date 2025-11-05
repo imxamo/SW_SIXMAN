@@ -118,15 +118,15 @@ def insert_upload_log(file_path):
     conn.commit()
     conn.close()
 
-def insert_sensor_data(temp, hum, soil, water):
+def insert_sensor_data(temp, hum, soil, water, led, fan):
     """센서 데이터를 sensor_server.db에 저장"""
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(SENSOR_DB_PATH)
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO sensor_data (temperature, humidity, soil_moisture, water_level, timestamp)
-        VALUES (?, ?, ?, ?, ?)
-    """, (temp, hum, soil, water, ts))
+        INSERT INTO sensor_data (temperature, humidity, soil_moisture, water_level, led_state, fan_state, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (temp, hum, soil, water, led, fan, ts))
     conn.commit()
     conn.close()
 
