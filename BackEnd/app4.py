@@ -245,7 +245,7 @@ def upload():
                 lines = body.strip().split("\n")
                 temp = float(lines[0].split(":")[1].strip().replace("C", "").strip())
                 hum = float(lines[1].split(":")[1].strip().replace("%", "").strip())
-                soil = int(lines[2].split(":")[1].strip())
+                soil = int(lines[2].split(":")[1].strip().replace("%", "").strip())
                 water = float(lines[3].split(":")[1].strip().replace("%", "").strip())
                 led = "OFF" if int(lines[4].split(":")[1].strip()) == 1 else "ON"
                 fan = "OFF" if int(lines[5].split(":")[1].strip()) == 1 else "ON"
